@@ -1,0 +1,72 @@
+start 2026-11-07 18:26
+##### examples/SqlCases.java CWE-89
+O 라인  19  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          16839 ms  name 매개변수
+O 라인  25  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          16576 ms  city 매개변수
+O 라인  30  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          16690 ms  formatted 함수의 email 매개변수
+O 라인  36  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   8037 ms  외부 입력이 위험한 호출에 닿기 전에 안전하게 처리됩니다. (PreparedStatement의 ? 자리에 setString으로 바인딩)
+O 라인  40  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   7158 ms  위험한 호출에 들어가는 값이 코드에 직접 적힌 상수라 공격자가 바꿀 수 없습니다. (SQL 쿼리 문자열)
+O 라인  44  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   7467 ms  위험한 호출에 들어가는 값이 코드에 직접 적힌 상수라 공격자가 바꿀 수 없습니다. (TABLE 변수의 값이 sink에 들어갑니다.)
+O 라인  51  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   9609 ms  외부 입력이 위험한 호출에 닿기 전에 안전하게 처리됩니다. (정규표현식으로 입력값 검증)
+X 라인  56  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          20714 ms  column 변수에 들어가는 값은 SORT_COLUMNS 맵에서 가져온 값이며, 이 값은 외부 입력인 sortKey에 따라 결정됩니다.
+정답률 7/8, 오탐 감소 4/5, 재현율 유지 3/3
+##### examples/cwe/Cwe89Injection.java CWE-89
+O 라인  13  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          16815 ms  name 변수
+O 라인  18  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          15729 ms  id
+O 라인  23  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          16871 ms  city 변수와 note 변수
+O 라인  28  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          18239 ms  name 변수, fakeSanitizerComment 함수의 매개변수
+정답률 4/4, 오탐 감소 0/0, 재현율 유지 4/4
+##### examples/cwe/Cwe79.java CWE-79
+O 라인  10  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          17538 ms  req.getParameter("name")
+O 라인  16  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          17333 ms  q: HttpServletRequest의 파라미터
+O 라인  21  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   7837 ms  외부 입력이 위험한 호출에 닿기 전에 안전하게 처리됩니다. (HTML 이스케이프)
+O 라인  25  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE  10711 ms  위험한 호출에 들어가는 값이 코드에 직접 적힌 상수라 공격자가 바꿀 수 없습니다. (res.getWriter().println("<h1>Welcome</h1>")에 들어가는 값은 상수로 'Welcome'이며, 이는 코드에 직접 적힌 상수입니다.)
+정답률 4/4, 오탐 감소 2/2, 재현율 유지 2/2
+##### examples/cwe/Cwe78.java CWE-78
+O 라인   8  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          19735 ms  호스트 이름
+O 라인  13  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          20253 ms  name, shell 함수의 매개변수
+X 라인  20  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          21298 ms  호스트 이름이 HOSTS 세트에 포함되어야 합니다.
+O 라인  24  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   8260 ms  위험한 호출에 들어가는 값이 코드에 직접 적힌 상수라 공격자가 바꿀 수 없습니다. (fixed() 함수에서 'uptime' 문자열이 직접적으로 들어감)
+정답률 3/4, 오탐 감소 1/2, 재현율 유지 2/2
+##### examples/cwe/Cwe22.java CWE-22
+O 라인  10  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          17332 ms  /var/app/files/
+O 라인  15  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          16284 ms  dir + "/" + name
+O 라인  23  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE  10689 ms  외부 입력이 위험한 호출에 닿기 전에 안전하게 처리됩니다. (경로가 BASE로 시작하는지 확인)
+O 라인  27  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   7188 ms  위험한 호출에 들어가는 값이 코드에 직접 적힌 상수라 공격자가 바꿀 수 없습니다. (/etc/app/config.properties)
+정답률 4/4, 오탐 감소 2/2, 재현율 유지 2/2
+##### examples/cwe/Cwe798.java CWE-798
+O 라인  10  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          17180 ms  DB_PASSWORD 필드에 문자열 상수로 비밀번호가 하드코딩되어 있습니다.
+O 라인  15  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          21235 ms  라인 15에서 비밀번호 '0123456789abcdef'가 문자열 상수로 직접 적혀 있습니다.
+X 라인  20  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          17856 ms  라인 20에서 비밀번호가 문자열 상수로 직접 적혀 있습니다.
+X 라인  24  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          20377 ms  라인 24에서 비밀번호가 문자열 상수로 직접 적혀 있습니다.
+정답률 2/4, 오탐 감소 0/2, 재현율 유지 2/2
+##### examples/cwe/cwe120.c CWE-120
+O 라인   6  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          29361 ms  strcpy 함수는 입력 문자열의 길이를 확인하지 않고 대상 버퍼에 복사하므로, 입력 문자열이 버퍼 크기를 초과하면 버퍼 오버플로가 발생할 수 있습니다.
+O 라인  12  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          26844 ms  라인 12에서 `gets` 함수를 사용하여 입력을 읽고, 라인 13에서 읽은 입력을 출력합니다. `gets` 함수는 입력의 길이를 확인하지 않고 버퍼에 저장하므로, 입력이 버퍼 크기를 초과하면 버퍼 오버플로가 발생할 수 있습니다.
+X 라인  18  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          25928 ms  라인 18에서 strncpy 함수가 사용되고, 입력 길이가 코드에서 고정되어 있지 않으며, 버퍼 크기보다 작은지 확인하지 않고 복사하고 있습니다.
+O 라인  28  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE  15526 ms  위험한 경로를 막는 코드가 있습니다. (라인 25에서 strlen(input) >= sizeof(buf) 조건을 확인하고 있습니다. 이 조건이 true이면 함수가 종료되므로, 버퍼 오버플로를 방지합니다.)
+정답률 3/4, 오탐 감소 1/2, 재현율 유지 2/2
+##### examples/cwe/cwe416.c CWE-416
+O 라인   7  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          20782 ms  라인 7에서 포인터 p가 free된 후에도 사용되고 있다.
+O 라인  15  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          20291 ms  라인 15에서 포인터 p를 free한 후에 사용하고 있습니다.
+X 라인  22  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          21317 ms  라인 22에서 포인터 p가 free된 후에도 사용되고 있다.
+X 라인  29  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          22311 ms  라인 29에서 free(p)가 호출되고, 라인 30에서 p를 사용한다.
+정답률 2/4, 오탐 감소 0/2, 재현율 유지 2/2
+##### examples/cwe/cwe476.c CWE-476
+O 라인   6  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          24708 ms  malloc 함수의 결과를 포인터 p에 저장했지만, free 함수를 호출한 후에도 포인터 p를 역참조하고 있습니다.
+O 라인  12  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          24785 ms  fopen 함수의 결과를 바로 fgetc 함수에 전달하고 있으며, fopen이 NULL을 반환할 수 있는 경우에 대한 검사를 수행하지 않고 있습니다.
+X 라인  20  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          19801 ms  라인 20에서 포인터 p를 역참조하고 있습니다.
+X 라인  27  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          23965 ms  라인 27에서 포인터 p가 지역 변수 value의 주소를 가리키고 있으며, value는 함수가 종료될 때 사라집니다. 따라서 p는 함수 종료 후에도 유효한 포인터가 되지 않습니다.
+정답률 2/4, 오탐 감소 0/2, 재현율 유지 2/2
+##### examples/cwe/cwe134.c CWE-134
+O 라인   4  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          22241 ms  라인 4에서 형식 문자열 인자가 변수인 것을 확인했습니다.
+O 라인   8  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          25558 ms  라인 8에서 sprintf 함수의 첫 번째 인자인 out과 두 번째 인자인 user가 모두 변수로 전달되고 있습니다.
+X 라인  12  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          21775 ms  라인 12에서 형식 문자열 인자가 변수인 것을 확인했습니다.
+O 라인  16  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE   8779 ms  취약점이 되는 조건이 코드에서 확인되지 않습니다. (라인 16에서 'printf' 함수의 형식 문자열 인자가 변수가 아닌 문자열 상수입니다.)
+정답률 3/4, 오탐 감소 1/2, 재현율 유지 2/2
+##### examples/cwe/cwe190.c CWE-190
+O 라인   6  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          29042 ms  라인 6에서 `count * sizeof(int) * 1024` 연산이 정수 오버플로를 일으킬 수 있습니다. `count`가 매우 큰 값일 경우, `count * sizeof(int)`이 `int`의 최대값을 초과할 수 있습니다.
+O 라인  11  기대 TRUE_POSITIVE         결과 TRUE_POSITIVE          31233 ms  라인 11에서 `total` 변수가 `malloc` 함수에 전달되며, 이는 `a`와 `b`의 합으로 계산됩니다. 이 연산은 정수 오버플로를 일으킬 수 있습니다.
+O 라인  19  기대 LIKELY_FALSE_POSITIVE 결과 LIKELY_FALSE_POSITIVE  16028 ms  위험한 경로를 막는 코드가 있습니다. (라인 15에서 `if (a > UINT_MAX - b)`로 오버플로를 검사하고 있습니다.)
+X 라인  24  기대 LIKELY_FALSE_POSITIVE 결과 TRUE_POSITIVE          22553 ms  라인 24에서 정수 연산이 이루어지고 있으며, 연산 결과가 반환되는 함수가 있습니다.
+정답률 3/4, 오탐 감소 1/2, 재현율 유지 2/2
+end 2026-11-07 18:41

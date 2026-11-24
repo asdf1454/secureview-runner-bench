@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 232" width="680" height="232" role="img" aria-label="단계별 처리 시간 (v1.1.2)">
+<title>단계별 처리 시간 (v1.1.2)</title>
+<style>
+svg{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--s1:#2a78d6;--s2:#eb6834}
+@media (prefers-color-scheme:dark){svg{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--grid:#2c2c2a;--axis:#383835;--s1:#3987e5;--s2:#d95926}}
+text{font-family:system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;font-size:12px;fill:var(--ink2)}
+.t{font-size:15px;font-weight:600;fill:var(--ink)}.n{fill:var(--muted)}.v{fill:var(--ink);font-weight:600}.tick{font-variant-numeric:tabular-nums;fill:var(--muted)}
+</style>
+<rect width="680" height="232" fill="var(--surface)"/>
+<text class="t" x="20" y="28">단계별 처리 시간 (v1.1.2)</text>
+<text class="n" x="20" y="47">RTX 2050 4GB 기준 건당 중앙값. 수정안과 질의응답은 v1.0.3 측정값</text>
+<text x="180" y="79" text-anchor="end">진짜 취약점 1건 (판정+설명)</text><path d="M190,66H440.6666666666667Q444.6666666666667,66 444.6666666666667,70V78Q444.6666666666667,82 440.6666666666667,82H190Z" fill="var(--s1)"><title>진짜 취약점 1건 (판정+설명): 19.1초</title></path><text x="452.6666666666667" y="79" text-anchor="start" class="v">19.1초</text><text x="180" y="109" text-anchor="end">모델 올리기 (시작 때 1회)</text><path d="M190,96H426Q430,96 430,100V108Q430,112 426,112H190Z" fill="var(--s1)"><title>모델 올리기 (시작 때 1회): 18초</title></path><text x="438" y="109" text-anchor="start" class="v">18초</text><text x="180" y="139" text-anchor="end">수정안 1건</text><path d="M190,126H347.3333333333333Q351.3333333333333,126 351.3333333333333,130V138Q351.3333333333333,142 347.3333333333333,142H190Z" fill="var(--s1)"><title>수정안 1건: 12.1초</title></path><text x="359.3333333333333" y="139" text-anchor="start" class="v">12.1초</text><text x="180" y="169" text-anchor="end">판정 1건 (500줄 측정 평균)</text><path d="M190,156H287.3333333333333Q291.3333333333333,156 291.3333333333333,160V168Q291.3333333333333,172 287.3333333333333,172H190Z" fill="var(--s1)"><title>판정 1건 (500줄 측정 평균): 7.6초</title></path><text x="299.3333333333333" y="169" text-anchor="start" class="v">7.6초</text><text x="180" y="199" text-anchor="end">질의응답 1건 (4회 중앙값)</text><path d="M190,186H235.33333333333334Q239.33333333333334,186 239.33333333333334,190V198Q239.33333333333334,202 235.33333333333334,202H190Z" fill="var(--s1)"><title>질의응답 1건 (4회 중앙값): 3.7초</title></path><text x="247.33333333333334" y="199" text-anchor="start" class="v">3.7초</text><line x1="190" x2="190" y1="60" y2="214" stroke="var(--axis)"/>
+</svg>

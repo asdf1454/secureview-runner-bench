@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "riskDetail": {"type": "string"},
+    "risk": {"type": ["boolean", "null"]},
+    "guardDetail": {"type": "string"},
+    "guard": {"type": "boolean"},
+    "confidence": {"type": "number"},
+    "evidenceLines": {"type": "array", "items": {"type": "integer"}}
+  },
+  "required": ["riskDetail", "risk", "guardDetail", "guard", "confidence", "evidenceLines"]
+}

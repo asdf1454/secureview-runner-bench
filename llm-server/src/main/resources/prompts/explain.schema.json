@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "explanation": {
+      "type": "object",
+      "properties": {
+        "summary": {"type": "string"},
+        "risk": {"type": "string"},
+        "attackExample": {"type": "string"}
+      },
+      "required": ["summary", "risk", "attackExample"]
+    }
+  },
+  "required": ["explanation"]
+}

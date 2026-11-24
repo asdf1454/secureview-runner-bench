@@ -1,0 +1,152 @@
+##### examples/SqlCases.java CWE-89
+--- 라인 19 (12723 ms) 통과
+public ResultSet concat(String name) throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM users WHERE name = ?");
+    pstmt.setString(1, name);
+    return pstmt.executeQuery();
+}
+--- 라인 25 (10197 ms) 통과
+public ResultSet builder(String city) throws SQLException {
+    String sql = "SELECT * FROM users WHERE city = ?";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setString(1, city);
+    return pstmt.executeQuery();
+}
+--- 라인 30 (12774 ms) 통과
+public ResultSet formatted(String email) throws SQLException {
+    String sql = "SELECT * FROM users WHERE email = ?";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setString(1, email);
+    return pstmt.executeQuery();
+}
+사전 검사 통과 3/3
+##### examples/cwe/Cwe79.java CWE-79
+--- 라인 10 (13556 ms) 통과
+public void direct(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    PrintWriter out = res.getWriter();
+    String name = req.getParameter("name");
+    out.println("<h1>" + HtmlUtils.htmlEscape(name) + "</h1>");
+}
+--- 라인 16 (12652 ms) 통과
+public void viaVariable(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    String q = req.getParameter("q");
+    String html = String.format("<p>Search: %s</p>", q);
+    res.getWriter().write(html);
+}
+사전 검사 통과 2/2
+##### examples/cwe/Cwe78.java CWE-78
+--- 라인 8 (26200 ms) 통과
+public Process ping(String host) throws IOException {
+    return Runtime.getRuntime().exec(String.format("ping -c 1 %s", host));
+}
+--- 라인 13 (13274 ms) 통과
+public Process shell(String name) throws IOException {
+    String[] cmd = {"sh", "-c", "cat /tmp/" + name};
+    return Runtime.getRuntime().exec(cmd);
+}
+사전 검사 통과 2/2
+##### examples/cwe/Cwe22.java CWE-22
+--- 라인 10 (14375 ms) 통과
+public FileInputStream open(String name) throws IOException {
+    Path filePath = Paths.get("/var/app/files/", name);
+    Files.validate(filePath);
+    return new FileInputStream(filePath.toString());
+}
+--- 라인 15 (14592 ms) 통과
+public FileInputStream openIn(String dir, String name) throws IOException {
+    Path filePath = Paths.get(dir, name);
+    return new FileInputStream(filePath.toFile());
+}
+사전 검사 통과 2/2
+##### examples/cwe/Cwe798.java CWE-798
+--- 라인 10 (20929 ms) 실패
+
+--- 라인 15 (22417 ms) 실패
+
+사전 검사 통과 0/2
+##### examples/cwe/cwe120.c CWE-120
+--- 라인 6 (17296 ms) 통과
+void copy_arg(const char *input) {
+    char buf[16];
+    strncpy(buf, input, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    puts(buf);
+}
+--- 라인 12 (18137 ms) 통과
+void read_name(void) {
+    char name[8];
+    fgets(name, sizeof(name), stdin);
+    name[strcspn(name, "\n")] = '\0';
+    puts(name);
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe416.c CWE-416
+--- 라인 7 (15738 ms) 통과
+void use_after(void) {
+    char *p = malloc(16);
+    if (p == NULL) {
+        // 메모리 할당 실패 처리
+        return;
+    }
+    free(p);
+    // 사용할 수 없는 포인터를 사용하지 않도록 수정
+}
+--- 라인 15 (14087 ms) 통과
+void on_error(int failed) {
+    char *p = malloc(16);
+    if (failed) {
+        free(p);
+        p = NULL;
+    }
+    if (p != NULL) {
+        puts(p);
+    }
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe476.c CWE-476
+--- 라인 6 (12049 ms) 통과
+void no_check(void) {
+    int *p = malloc(sizeof(int));
+    if (p != NULL) {
+        *p = 1;
+        free(p);
+    }
+}
+--- 라인 12 (14553 ms) 통과
+int first_char(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (f == NULL) {
+        return -1; // 파일 열기에 실패한 경우 -1 반환
+    }
+    int ch = fgetc(f);
+    fclose(f);
+    return ch;
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe134.c CWE-134
+--- 라인 4 (8190 ms) 통과
+void log_message(const char *msg) {
+    fprintf(stderr, "Message: %s", msg);
+}
+--- 라인 8 (9893 ms) 통과
+void to_buffer(char *out, const char *user) {
+    snprintf(out, BUFFER_SIZE, "%s", user);
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe190.c CWE-190
+--- 라인 6 (15242 ms) 통과
+int *alloc_items(int count) {
+    if (count > INT_MAX / (sizeof(int) * 1024)) {
+        return NULL; // 메모리 할당 실패
+    }
+    return malloc(count * sizeof(int) * 1024);
+}
+--- 라인 11 (13888 ms) 통과
+char *alloc_pair(unsigned int a, unsigned int b) {
+    if (a > SIZE_MAX - b) {
+        return NULL;
+    }
+    unsigned int total = a + b;
+    return malloc(total);
+}
+사전 검사 통과 2/2

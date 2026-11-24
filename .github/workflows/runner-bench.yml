@@ -1,0 +1,101 @@
+# GitHub 기본 러너(GPU 없음)에서 Ollama + qwen2.5-coder:7b 판정 시간을 잰다.
+# 결과는 실행 화면의 Summary 탭에 표로 나온다.
+name: runner-bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: SpeedBench 반복 횟수 (교수님 기준은 10회 중앙값)
+        default: '3'
+  push:
+    paths: ['.github/workflows/runner-bench.yml']
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RUNS: ${{ inputs.runs || '3' }}
+      MODEL: qwen2.5-coder:7b          # OllamaClient.DEFAULT_MODEL과 같아야 한다
+      OLLAMA_CONTEXT_LENGTH: '8192'
+      OLLAMA_KEEP_ALIVE: 24h
+      MAVEN_OPTS: -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8
+    defaults:
+      run:
+        working-directory: llm-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: 러너 사양 기록
+        run: |
+          {
+            echo "## 러너 사양"
+            echo "- CPU: $(nproc)코어 ($(lscpu | sed -n 's/^Model name: *//p'))"
+            echo "- RAM: $(free -g | awk '/^Mem/{print $2}')GB"
+            echo "- GPU: $(command -v nvidia-smi >/dev/null && echo 있음 || echo 없음)"
+            echo
+            echo "## 단계별 시간"
+            echo "| 단계 | 시간 |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 컴파일
+        run: |
+          start=$(date +%s)
+          ./mvnw -q -B -DskipTests compile
+          echo "| 컴파일 | $(( $(date +%s) - start ))초 |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Ollama 설치와 실행
+        run: |
+          start=$(date +%s)
+          curl -fsSL https://ollama.com/install.sh | sh
+          # 설치 스크립트가 띄운 서비스는 위 환경 변수를 모르므로 끄고 직접 띄운다.
+          sudo systemctl stop ollama || true
+          nohup ollama serve > /tmp/ollama.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:11434/api/tags > /dev/null && break; sleep 1; done
+          echo "| Ollama 설치 | $(( $(date +%s) - start ))초 |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 모델 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.MODEL }}
+
+      - name: 모델 받기
+        run: |
+          start=$(date +%s)
+          ollama pull "$MODEL"
+          echo "| 모델 받기 (캐시 있으면 짧음) | $(( $(date +%s) - start ))초 |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 판정 1건 (Demo, UserDao.java 16번 줄)
+        run: |
+          ./mvnw -q -B exec:java "-Dexec.args=examples/UserDao.java 16 89" | tee /tmp/demo.txt
+          warm=$(sed -n 's/^== 모델 미리 올리기 (\([0-9]*\) ms)/\1/p' /tmp/demo.txt)
+          judge=$(sed -n 's/^== S5 판정 (\([0-9]*\) ms)/\1/p' /tmp/demo.txt)
+          verdict=$(grep -o '"result" *: *"[A-Z_]*"' /tmp/demo.txt | head -1 | sed 's/.*"\([A-Z_]*\)"$/\1/')
+          {
+            echo "| 모델 메모리에 올리기 | $(( warm / 1000 ))초 |"
+            echo "| **판정 1건** | **$(( judge / 1000 ))초** (결과 ${verdict:-확인 불가}) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 묶음 판정 (SpeedBench, Large500.java 경고 5건, 예산 45초)
+        run: |
+          ./mvnw -q -B exec:java "-Dexec.mainClass=secureview.llm.SpeedBench" "-Dexec.args=examples/Large500.java 89 $RUNS 45" | tee /tmp/bench.txt
+          {
+            echo
+            echo "## SpeedBench (경고 5건, ${RUNS}회)"
+            echo '```'
+            cat /tmp/bench.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 실패 시 Ollama 로그
+        if: failure()
+        run: tail -50 /tmp/ollama.log

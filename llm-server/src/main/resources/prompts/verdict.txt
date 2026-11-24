@@ -1,0 +1,38 @@
+너는 보안 코드 리뷰어다. 정적 분석 도구가 아래 위치에서 취약점 가능성을 찾았다. 정적 분석 도구는 오탐이 많으니, 코드를 직접 확인해 아래 질문에 사실대로 답하라.
+설명에는 정적 분석 도구나 경고를 언급하지 말고, 코드에서 확인한 내용만 쓴다.
+
+[확인할 위치]
+- 파일: {{file}}
+- 라인: {{line}}
+- 취약점 종류: {{cwe}}
+
+[질문]
+1. source: 경고 라인의 위험한 호출(sink)에 들어가는 값은 무엇이고 어디서 오는가?
+2. externalInput: 그 값에 함수 매개변수나 외부 입력이 섞여 있으면 true, 코드에 직접 적힌 상수로만 이루어져 있으면 false. 주어진 코드만으로 알 수 없으면 null.
+3. sanitization과 sanitized: 외부 입력이 위험한 호출에 닿기 전에 안전하게 처리되는가? 처리되면 sanitized는 true, 아니면 false, 알 수 없으면 null. externalInput이 false면 sanitized도 false로 둔다.
+   안전한 처리의 예:
+   - 모든 CWE 공통 (허용 목록): 정규식 등으로 허용된 형식만 통과시키고 나머지는 거부(예외, return)하는 검증,
+     또는 고정된 값 목록(Map, Set.contains 검사, enum, switch)에서만 값을 골라 쓰는 경우. 이때 sink에 닿는 값은 공격자가 마음대로 만들 수 없다.
+   - SQL: PreparedStatement의 ? 자리에 setString/setInt 등으로 바인딩
+   - XSS: HTML 이스케이프 후 출력
+   - OS 명령: 고정된 명령과 허용 목록으로 검증된 인자
+   - 경로: 정규화 후 허용된 폴더 안인지 검사
+   - C 버퍼·정수: 복사·연산 전에 크기와 범위 검사
+   - 포맷 문자열: 형식 인자가 "%s" 같은 고정 문자열이고 입력은 그 뒤 인자로만 전달됨. 위험한 값은 형식 인자이므로 이때 externalInput은 false
+4. evidenceLines: 위 답의 근거가 되는 라인 번호. 아래 코드 앞에 붙은 번호 중에서만 고른다.
+
+[코드] 각 줄 앞의 숫자는 원본 파일의 라인 번호다. 함수가 쓰는 클래스 필드 선언이 있으면 맨 앞에 보여 주고 "..."로 구분한다.
+static final 필드에 상수를 넣은 것이면 그 필드도 상수다.
+<<<CODE
+{{code}}
+CODE>>>
+
+아래 JSON 형식으로만 답하라. 설명 문장을 덧붙이지 말고, 문자열 값은 한국어로 한 문장 이내로 쓴다.
+{
+  "source": "sink에 들어가는 값과 그 출처",
+  "externalInput": true 또는 false 또는 null,
+  "sanitization": "안전한 처리가 있으면 무엇인지, 없으면 '없음'",
+  "sanitized": true 또는 false 또는 null,
+  "confidence": 0.0부터 1.0 사이 숫자,
+  "evidenceLines": [근거 라인 번호]
+}

@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "source": {"type": "string"},
+    "externalInput": {"type": ["boolean", "null"]},
+    "sanitization": {"type": "string"},
+    "sanitized": {"type": ["boolean", "null"]},
+    "confidence": {"type": "number"},
+    "evidenceLines": {"type": "array", "items": {"type": "integer"}}
+  },
+  "required": ["source", "externalInput", "sanitization", "sanitized", "confidence", "evidenceLines"]
+}

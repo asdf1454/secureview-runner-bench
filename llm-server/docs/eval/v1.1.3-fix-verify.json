@@ -1,0 +1,228 @@
+{
+  "measuredAt": "2026-11-13T13:25:10.622Z",
+  "maxAttempts": 3,
+  "targets": 4,
+  "passedFirst": 3,
+  "passed": 3,
+  "records": [
+    {
+      "file": "UserDao.java",
+      "line": 16,
+      "cwe": "CWE-89",
+      "function": "find",
+      "verdict": "TRUE_POSITIVE",
+      "attempts": [
+        {
+          "attempt": 1,
+          "result": "PASS",
+          "failReason": null,
+          "fixSec": 54.6,
+          "verifySec": 5,
+          "fixedCode": "public ResultSet find(String name) throws SQLException {\n        PreparedStatement ps = conn.prepareStatement(\"SELECT * FROM users WHERE name = ?\");\n        ps.setString(1, name);\n        return ps.executeQuery();\n    }",
+          "reason": "SQL 인젝션 취약점을 제거하기 위해 PreparedStatement를 사용하여 쿼리를 생성합니다. PreparedStatement는 사용자 입력을 문자열로 이어 붙이지 않고, ? 자리에 setString 메서드를 사용하여 바인딩합니다. 이를 통해 SQL 인젝션 공격을 방지할 수 있습니다."
+        }
+      ],
+      "final": "PASS"
+    },
+    {
+      "file": "SqlCases.java",
+      "line": 19,
+      "cwe": "CWE-89",
+      "function": "concat",
+      "verdict": "TRUE_POSITIVE",
+      "attempts": [
+        {
+          "attempt": 1,
+          "result": "PASS",
+          "failReason": null,
+          "fixSec": 38.7,
+          "verifySec": 6.1,
+          "fixedCode": "public ResultSet concat(String name) throws SQLException {\n    PreparedStatement pstmt = conn.prepareStatement(\"SELECT * FROM users WHERE name = ?\");\n    pstmt.setString(1, name);\n    return pstmt.executeQuery();\n}",
+          "reason": "SQL 인젝션 취약점을 제거하기 위해 PreparedStatement를 사용하여 쿼리를 생성하고, name 매개변수를 setString 메서드를 사용하여 바인딩합니다."
+        }
+      ],
+      "final": "PASS"
+    },
+    {
+      "file": "SqlCases.java",
+      "line": 25,
+      "cwe": "CWE-89",
+      "function": "builder",
+      "verdict": "TRUE_POSITIVE",
+      "attempts": [
+        {
+          "attempt": 1,
+          "result": "PASS",
+          "failReason": null,
+          "fixSec": 49.1,
+          "verifySec": 5.7,
+          "fixedCode": "public ResultSet builder(String city) throws SQLException {\n        String sql = \"SELECT * FROM users WHERE city = ?\";\n        PreparedStatement pstmt = conn.prepareStatement(sql);\n        pstmt.setString(1, city);\n        return pstmt.executeQuery();\n    }",
+          "reason": "SQL 인젝션 취약점을 제거하기 위해 PreparedStatement를 사용하여 city 매개변수를 바인딩합니다. PreparedStatement는 SQL 쿼리에서 사용자 입력을 안전하게 처리하는 데 사용됩니다."
+        }
+      ],
+      "final": "PASS"
+    },
+    {
+      "file": "SqlCases.java",
+      "line": 51,
+      "cwe": "CWE-89",
+      "function": "allowlisted",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "SqlCases.java",
+      "line": 30,
+      "cwe": "CWE-89",
+      "function": "formatted",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "SqlCases.java",
+      "line": 56,
+      "cwe": "CWE-89",
+      "function": "sorted",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe89Injection.java",
+      "line": 13,
+      "cwe": "CWE-89",
+      "function": "inLineComment",
+      "verdict": "TRUE_POSITIVE",
+      "attempts": [
+        {
+          "attempt": 1,
+          "result": "FAIL",
+          "failReason": "COMPILE_ERROR",
+          "fixSec": 38.2,
+          "verifySec": 0.1,
+          "fixedCode": "public ResultSet inLineComment(String name) throws SQLException {\n    PreparedStatement pstmt = conn.prepareStatement(\"SELECT * FROM users WHERE name = ?\");\n    pstmt.setString(1, name);\n    return pstmt.executeQuery();\n}",
+          "reason": "PreparedStatement를 사용하여 SQL 인젝션 취약점을 방지합니다. name 매개변수는 PreparedStatement의 ? 자리에 바인딩되어 있습니다."
+        },
+        {
+          "attempt": 2,
+          "result": "FAIL",
+          "failReason": "COMPILE_ERROR",
+          "fixSec": 53.4,
+          "verifySec": 0.1,
+          "fixedCode": "public ResultSet inLineComment(String name) throws SQLException {\n    PreparedStatement pstmt = conn.prepareStatement(\"SELECT * FROM users WHERE name = ?\");\n    pstmt.setString(1, name);\n    return pstmt.executeQuery();\n}",
+          "reason": "SQL 인젝션 취약점을 제거하기 위해 PreparedStatement를 사용하여 ? 자리에 setString 메서드를 사용하여 name 매개변수를 바인딩합니다."
+        },
+        {
+          "attempt": 3,
+          "result": "NO_FIX",
+          "reason": "제한 시간(60초) 안에 수정안을 만들지 못했습니다.",
+          "fixSec": 60
+        }
+      ],
+      "final": "NO_FIX"
+    },
+    {
+      "file": "Cwe89Injection.java",
+      "line": 18,
+      "cwe": "CWE-89",
+      "function": "inBlockComment",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe89Injection.java",
+      "line": 23,
+      "cwe": "CWE-89",
+      "function": "inString",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe89Injection.java",
+      "line": 28,
+      "cwe": "CWE-89",
+      "function": "fakeSanitizerComment",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe78.java",
+      "line": 8,
+      "cwe": "CWE-78",
+      "function": "ping",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe78.java",
+      "line": 13,
+      "cwe": "CWE-78",
+      "function": "shell",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe78.java",
+      "line": 20,
+      "cwe": "CWE-78",
+      "function": "allowed",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe22.java",
+      "line": 10,
+      "cwe": "CWE-22",
+      "function": "open",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe22.java",
+      "line": 15,
+      "cwe": "CWE-22",
+      "function": "openIn",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe798.java",
+      "line": 10,
+      "cwe": "CWE-798",
+      "function": "field",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Cwe798.java",
+      "line": 15,
+      "cwe": "CWE-798",
+      "function": "key",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Large500.java",
+      "line": 29,
+      "cwe": "CWE-89",
+      "function": "method1",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Large500.java",
+      "line": 129,
+      "cwe": "CWE-89",
+      "function": "method6",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    },
+    {
+      "file": "Large500.java",
+      "line": 329,
+      "cwe": "CWE-89",
+      "function": "method16",
+      "verdict": "UNDECIDED",
+      "attempts": []
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "finding": {
+    "jobId": "00000000-0000-0000-0000-000000000001",
+    "findingId": "00000000-0000-0000-0000-000000000002",
+    "language": "JAVA",
+    "cwe": "CWE-89",
+    "title": "SQL 인젝션",
+    "severity": "HIGH",
+    "tool": "FindSecBugs",
+    "ruleId": "SQL_INJECTION_JDBC",
+    "toolMessage": "This use of java/sql/Statement.executeQuery can be vulnerable to SQL injection",
+    "line": 16,
+    "sourcePath": "/work/00000000/UserDao.java"
+  },
+  "sourceCode": "import java.sql.Connection;\nimport java.sql.PreparedStatement;\nimport java.sql.ResultSet;\nimport java.sql.SQLException;\nimport java.sql.Statement;\n\n// 데모용 예제. find는 SQL 인젝션 취약(라인 16), findById는 안전(라인 22).\npublic class UserDao {\n\n    private final Connection conn;\n\n    public UserDao(Connection conn) { this.conn = conn; }\n\n    public ResultSet find(String name) throws SQLException {\n        Statement st = conn.createStatement();\n        return st.executeQuery(\"SELECT * FROM users WHERE name = '\" + name + \"'\");\n    }\n\n    public ResultSet findById(int id) throws SQLException {\n        PreparedStatement ps = conn.prepareStatement(\"SELECT * FROM users WHERE id = ?\");\n        ps.setInt(1, id);\n        return ps.executeQuery();\n    }\n\n    public ResultSet countAll() throws SQLException {\n        return conn.createStatement().executeQuery(\"SELECT COUNT(*) FROM users\");\n    }\n}\n"
+}

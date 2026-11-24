@@ -1,0 +1,178 @@
+##### examples/SqlCases.java CWE-89
+--- 라인 19 (11297 ms) 통과
+public ResultSet concat(String name) throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM users WHERE name = ?");
+    pstmt.setString(1, name);
+    return pstmt.executeQuery();
+}
+--- 라인 25 (10652 ms) 통과
+public ResultSet builder(String city) throws SQLException {
+    String sql = "SELECT * FROM users WHERE city = ?";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setString(1, city);
+    return pstmt.executeQuery();
+}
+--- 라인 30 (14465 ms) 통과
+public ResultSet formatted(String email) throws SQLException {
+    String sql = "SELECT * FROM users WHERE email = ?";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setString(1, email);
+    return pstmt.executeQuery();
+}
+사전 검사 통과 3/3
+##### examples/cwe/Cwe79.java CWE-79
+--- 라인 10 (32742 ms) 통과
+public void direct(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    PrintWriter out = res.getWriter();
+    String name = req.getParameter("name");
+    out.println("<h1>" + name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;") + "</h1>");
+}
+--- 라인 16 (34947 ms) 실패
+
+사전 검사 통과 1/2
+##### examples/cwe/Cwe78.java CWE-78
+--- 라인 8 (17303 ms) 통과
+public Process ping(String host) throws IOException {
+    if (!host.matches("[A-Za-z0-9._-]+")) {
+        throw new IllegalArgumentException("Invalid host name");
+    }
+    ProcessBuilder processBuilder = new ProcessBuilder("ping", "-c", "1", host);
+    return processBuilder.start();
+}
+--- 라인 13 (16164 ms) 통과
+public Process shell(String name) throws IOException {
+    if (!name.matches("[A-Za-z0-9._-]+")) {
+        throw new IllegalArgumentException("Invalid input");
+    }
+    ProcessBuilder processBuilder = new ProcessBuilder("cat", "/tmp/" + name);
+    return processBuilder.start();
+}
+사전 검사 통과 2/2
+##### examples/cwe/Cwe22.java CWE-22
+--- 라인 10 (16897 ms) 통과
+public FileInputStream open(String name) throws IOException {
+    Path base = Paths.get("/var/app/files");
+    Path resolvedPath = base.resolve(name).normalize();
+    if (!resolvedPath.startsWith(base)) {
+        throw new SecurityException("Invalid file path");
+    }
+    return new FileInputStream(resolvedPath.toString());
+}
+--- 라인 15 (14055 ms) 통과
+public FileInputStream openIn(String dir, String name) throws IOException {
+    Path base = Paths.get(dir);
+    Path resolvedPath = base.resolve(name).normalize();
+    if (!resolvedPath.startsWith(base)) {
+        throw new SecurityException("Invalid path");
+    }
+    return new FileInputStream(resolvedPath.toString());
+}
+사전 검사 통과 2/2
+##### examples/cwe/Cwe798.java CWE-798
+--- 라인 10 (11982 ms) 통과
+public Connection field() throws SQLException {
+    String password = System.getenv("DB_PASSWORD");
+    if (password == null) {
+        throw new IllegalStateException("DB_PASSWORD 환경 변수가 설정되지 않았습니다.");
+    }
+    return DriverManager.getConnection("jdbc:mysql://db/app", "admin", password);
+}
+--- 라인 15 (13094 ms) 통과
+public SecretKeySpec key() {
+    String key = System.getenv("SECRET_KEY");
+    if (key == null) {
+        throw new IllegalStateException("SECRET_KEY 환경 변수가 설정되지 않았습니다.");
+    }
+    byte[] raw = key.getBytes();
+    return new SecretKeySpec(raw, "AES");
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe120.c CWE-120
+--- 라인 6 (11969 ms) 통과
+void copy_arg(const char *input) {
+    char buf[16];
+    strncpy(buf, input, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    puts(buf);
+}
+--- 라인 12 (20832 ms) 통과
+void read_name(void) {
+    char name[8];
+    fgets(name, sizeof(name), stdin);
+    size_t len = strlen(name);
+    if (len > 0 && name[len - 1] == '\n') {
+        name[len - 1] = '\0';
+    }
+    puts(name);
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe416.c CWE-416
+--- 라인 7 (10925 ms) 통과
+void use_after(void) {
+    char *p = malloc(16);
+    free(p);
+    p = NULL;
+    if (p != NULL) {
+        p[0] = 'a';
+    }
+}
+--- 라인 15 (12077 ms) 통과
+void on_error(int failed) {
+    char *p = malloc(16);
+    if (failed) {
+        free(p);
+        p = NULL;
+    }
+    if (p != NULL) {
+        puts(p);
+    }
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe476.c CWE-476
+--- 라인 6 (8165 ms) 통과
+void no_check(void) {
+    int *p = malloc(sizeof(int));
+    if (p == NULL) {
+        return;
+    }
+    *p = 1;
+    free(p);
+}
+--- 라인 12 (11715 ms) 통과
+int first_char(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (f == NULL) {
+        return EOF;
+    }
+    int ch = fgetc(f);
+    fclose(f);
+    return ch;
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe134.c CWE-134
+--- 라인 4 (5730 ms) 통과
+void log_message(const char *msg) {
+    printf("%s", msg);
+}
+--- 라인 8 (7987 ms) 통과
+void to_buffer(char *out, const char *user) {
+    snprintf(out, sizeof(out), "%s", user);
+}
+사전 검사 통과 2/2
+##### examples/cwe/cwe190.c CWE-190
+--- 라인 6 (11507 ms) 통과
+int *alloc_items(int count) {
+    if (count > INT_MAX / (sizeof(int) * 1024)) {
+        return NULL;
+    }
+    return malloc(count * sizeof(int) * 1024);
+}
+--- 라인 11 (13659 ms) 통과
+char *alloc_pair(unsigned int a, unsigned int b) {
+    if (a > SIZE_MAX - b) {
+        return NULL;
+    }
+    unsigned int total = a + b;
+    return malloc(total);
+}
+사전 검사 통과 2/2
