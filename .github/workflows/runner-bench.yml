@@ -9,7 +9,7 @@ on:
         description: SpeedBench 반복 횟수 (교수님 기준은 10회 중앙값)
         default: '3'
       model:
-        description: Ollama 모델 (예: qwen2.5-coder:3b)
+        description: 'Ollama 모델, 예를 들면 qwen2.5-coder:3b'
         default: qwen2.5-coder:7b
   push:
     paths: ['.github/workflows/runner-bench.yml']
