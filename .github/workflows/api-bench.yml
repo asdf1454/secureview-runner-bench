@@ -1,20 +1,22 @@
-# GitHub Models(GITHUB_TOKEN, 키 없음)로 LlmServer openai 모드 판정 시간을 잰다.
+# OpenAI 형식 외부 API(기본 Groq 무료 키)로 LlmServer openai 모드 판정 시간을 잰다.
 # 16번 줄은 진짜 취약점(TRUE_POSITIVE), 22번과 26번 줄은 안전한 코드다. 결과는 Summary 탭에 표로 나온다.
-name: models-bench
+name: api-bench
 
 on:
   workflow_dispatch:
     inputs:
+      base_url:
+        description: 'API 주소 (/chat/completions 앞까지)'
+        default: https://api.groq.com/openai/v1
       model:
-        description: 'GitHub Models 모델 이름, 예를 들면 openai/gpt-4o-mini'
-        default: openai/gpt-4o-mini
+        description: 모델 이름
+        default: llama-3.3-70b-versatile
       runs:
         description: 줄마다 반복 횟수
         default: '3'
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   bench:
@@ -22,9 +24,9 @@ jobs:
     timeout-minutes: 30
     env:
       SR_LLM_PROVIDER: openai
-      SR_LLM_BASE_URL: https://models.github.ai/inference
+      SR_LLM_BASE_URL: ${{ inputs.base_url }}
       SR_LLM_MODEL: ${{ inputs.model }}
-      SR_LLM_API_KEY: ${{ secrets.GITHUB_TOKEN }}
+      SR_LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
       SR_INTERNAL_KEY: bench-only
       RUNS: ${{ inputs.runs }}
       MAVEN_OPTS: -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8
@@ -43,7 +45,7 @@ jobs:
       - name: 컴파일
         run: ./mvnw -q -B -DskipTests compile
 
-      - name: GitHub Models 직접 호출 확인
+      - name: API 직접 호출 확인
         run: |
           curl -s -m 60 -i "$SR_LLM_BASE_URL/chat/completions" \
             -H "Authorization: Bearer $SR_LLM_API_KEY" -H "Content-Type: application/json" \
@@ -63,7 +65,7 @@ jobs:
       - name: 판정 측정
         run: |
           {
-            echo "## GitHub Models 판정 (모델 $SR_LLM_MODEL, 줄마다 ${RUNS}회)"
+            echo "## API 판정 ($SR_LLM_BASE_URL, 모델 $SR_LLM_MODEL, 줄마다 ${RUNS}회)"
             echo "| 줄 | 회차 | 시간 | 결과 | 기대 |"
             echo "|---|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -78,6 +80,7 @@ jobs:
               verdict=$(jq -r '.llm.verdict // .error' /tmp/res.json)
               echo "줄 $line, $i회: $ms ms, $verdict"
               echo "| $line | $i | $(( ms / 1000 )).$(( ms % 1000 / 100 ))초 | $verdict | $expect |" >> "$GITHUB_STEP_SUMMARY"
+              sleep 10  # 무료 한도(분당 토큰) 때문에 간격을 둔다
             done
           done
           echo "마지막 응답:"; jq . /tmp/res.json
