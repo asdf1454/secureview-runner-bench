@@ -1,4 +1,4 @@
-# GitHub 기본 러너(GPU 없음)에서 Ollama + qwen2.5-coder:7b 판정 시간을 잰다.
+# GitHub 기본 러너(GPU 없음)에서 Ollama 모델(기본 qwen2.5-coder:7b) 판정 시간을 잰다.
 # 결과는 실행 화면의 Summary 탭에 표로 나온다.
 name: runner-bench
 
@@ -8,6 +8,9 @@ on:
       runs:
         description: SpeedBench 반복 횟수 (교수님 기준은 10회 중앙값)
         default: '3'
+      model:
+        description: Ollama 모델 (예: qwen2.5-coder:3b)
+        default: qwen2.5-coder:7b
   push:
     paths: ['.github/workflows/runner-bench.yml']
 
@@ -17,7 +20,7 @@ jobs:
     timeout-minutes: 90
     env:
       RUNS: ${{ inputs.runs || '3' }}
-      MODEL: qwen2.5-coder:7b          # OllamaClient.DEFAULT_MODEL과 같아야 한다
+      MODEL: ${{ inputs.model || 'qwen2.5-coder:7b' }}
       OLLAMA_CONTEXT_LENGTH: '8192'
       OLLAMA_KEEP_ALIVE: 24h
       MAVEN_OPTS: -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8
@@ -36,7 +39,7 @@ jobs:
       - name: 러너 사양 기록
         run: |
           {
-            echo "## 러너 사양"
+            echo "## 러너 사양 (모델 $MODEL)"
             echo "- CPU: $(nproc)코어 ($(lscpu | sed -n 's/^Model name: *//p'))"
             echo "- RAM: $(free -g | awk '/^Mem/{print $2}')GB"
             echo "- GPU: $(command -v nvidia-smi >/dev/null && echo 있음 || echo 없음)"
@@ -49,6 +52,9 @@ jobs:
       - name: 컴파일
         run: |
           start=$(date +%s)
+          # Demo와 SpeedBench가 OllamaClient.DEFAULT_MODEL을 쓰므로 측정할 모델로 바꾼다.
+          sed -i "s/DEFAULT_MODEL = \"[^\"]*\"/DEFAULT_MODEL = \"$MODEL\"/" src/main/java/secureview/llm/OllamaClient.java
+          grep "DEFAULT_MODEL =" src/main/java/secureview/llm/OllamaClient.java
           ./mvnw -q -B -DskipTests compile
           echo "| 컴파일 | $(( $(date +%s) - start ))초 |" >> "$GITHUB_STEP_SUMMARY"
 
