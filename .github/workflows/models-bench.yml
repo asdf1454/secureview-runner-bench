@@ -43,6 +43,13 @@ jobs:
       - name: 컴파일
         run: ./mvnw -q -B -DskipTests compile
 
+      - name: GitHub Models 직접 호출 확인
+        run: |
+          curl -s -m 60 -i "$SR_LLM_BASE_URL/chat/completions" \
+            -H "Authorization: Bearer $SR_LLM_API_KEY" -H "Content-Type: application/json" \
+            -d "{\"model\":\"$SR_LLM_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with JSON {\\\"ok\\\":true}\"}],\"response_format\":{\"type\":\"json_object\"}}" \
+            | head -c 1500
+
       - name: LLM 서버 실행 (openai 모드)
         run: |
           nohup ./mvnw -q -B exec:java "-Dexec.mainClass=secureview.llm.LlmServer" > /tmp/server.log 2>&1 &
