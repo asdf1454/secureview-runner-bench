@@ -10,7 +10,7 @@ on:
         default: https://api.groq.com/openai/v1
       model:
         description: 모델 이름
-        default: llama-3.3-70b-versatile
+        default: openai/gpt-oss-120b
       runs:
         description: 줄마다 반복 횟수
         default: '3'
