@@ -47,6 +47,8 @@ jobs:
 
       - name: API 직접 호출 확인
         run: |
+          echo "사용 가능한 모델:"
+          curl -s -m 30 "$SR_LLM_BASE_URL/models" -H "Authorization: Bearer $SR_LLM_API_KEY" | jq -r '.data[].id' | sort
           curl -s -m 60 -i "$SR_LLM_BASE_URL/chat/completions" \
             -H "Authorization: Bearer $SR_LLM_API_KEY" -H "Content-Type: application/json" \
             -d "{\"model\":\"$SR_LLM_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with JSON {\\\"ok\\\":true}\"}],\"response_format\":{\"type\":\"json_object\"}}" \
