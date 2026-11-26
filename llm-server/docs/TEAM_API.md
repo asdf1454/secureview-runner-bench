@@ -71,6 +71,37 @@ curl -H "X-Internal-Key: 비밀값" -H "Content-Type: application/json" --data-b
 - 제한 시간(60초)을 넘기거나 사전 검사를 통과하는 수정안이 없으면 `fixedCode`가 `null`이고 `reason`에 이유가 들어간다.
 - 재검증이 실패하면 실패 이유를 `previousFailure`에 넣어 다시 요청한다. 설명서 기준 최대 2회.
 
+### PR 헝크 검토 API (GitHub Action용)
+
+`POST /internal/review-hunk`: PR 헝크 하나와, 그 헝크의 바뀐 줄에 걸린 정적 분석 경고들을 받아 판정한다. 형식은 `docs/HUNK_CODE_REVIEW_DESIGN.md` 6절을 따르고, 다른 점은 아래 표에 있다. 호출하는 쪽은 `.github/scripts/securereview`(PR 검토 실행기)다.
+
+```json
+{"reviewId": "PR head SHA",
+ "hunk": {"id": "헝크 해시", "filePath": "src/main/java/demo/UserDao.java", "language": "java",
+          "headSha": "...", "newStartLine": 20, "newLineCount": 13, "patch": "@@ ...",
+          "addedLines": [{"line": 27, "code": "..."}]},
+ "sourceCode": "head 커밋의 파일 전체",
+ "findings": [{ "형식 A 객체": "..." }],
+ "budgetSec": 40}
+```
+
+```json
+{"hunkId": "헝크 해시",
+ "findings": [{"id": "헝크해시:CWE-89:27", "findingId": "요청한 경고 id", "cwe": "CWE-89", "severity": "MEDIUM",
+               "line": 27, "endLine": 27, "title": "...", "verdict": "TRUE_POSITIVE", "confidence": 1.0,
+               "explanation": "...", "evidenceLines": [26, 27], "suggestion": "PreparedStatement로 바인딩...",
+               "model": "openai/gpt-oss-120b", "latencySec": 4.2}]}
+```
+
+| 항목 | 동작 |
+|---|---|
+| 판정 | `/internal/judge`와 같은 로직(상수 판정 → LLM). 경고가 없으면 LLM을 부르지 않는다 |
+| 시간 | 경고 한 건 30초가 아니라 `budgetSec`(PR 전체 예산 중 남은 시간, 최대 45초) 하나로 묶는다. 심각도 높은 경고부터 판정하고, 남은 시간으로 설명 → 수정 방향 순서로 만든다. 시간이 없으면 판정은 `UNDECIDED`, `suggestion`은 `null` |
+| `suggestion` | S6 수정안의 이유 문장(수정 방향). 수정 코드 자체는 재검증 전이라 내보내지 않는다 |
+| `findingId` | 설계안에 없는 값. 요청한 경고와 결과를 잇는다 |
+| `confidence` | LLM이 스스로 낸 값이라 PR 댓글에는 보여 주지 않는다 |
+| 오류 | 경고 줄이 헝크 범위(`newStartLine` ~ `newStartLine+newLineCount-1`) 밖이면 400 `INVALID_LINE`. `hunk.id`나 `sourceCode`가 없으면 400 `INVALID_INPUT` |
+
 ### 명세에 없거나 명세와 다른 동작 (팀 확인 필요)
 
 | 항목 | 동작 | 이유 |

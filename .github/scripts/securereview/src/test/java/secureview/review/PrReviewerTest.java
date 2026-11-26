@@ -125,6 +125,7 @@ class PrReviewerTest {
         assertTrue(gh.posted.get(1).isEmpty(), "줄 댓글은 다시 달지 않는다");
         assertEquals(1, again.duplicates());
         assertTrue(gh.bodies.get(1).contains("securereview-summary: sha2"));
+        assertTrue(gh.bodies.get(1).contains("새 댓글 0개, 이미 단 댓글 1개"));
     }
 
     /** 위에 줄이 추가되어 줄 번호와 헝크가 바뀌어도, 같은 코드 줄의 같은 취약점에는 댓글을 다시 달지 않는다. */

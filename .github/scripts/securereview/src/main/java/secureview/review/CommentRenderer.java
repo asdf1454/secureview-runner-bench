@@ -38,7 +38,8 @@ public final class CommentRenderer {
                 .append("| 항목 | 값 |\n|---|---|\n")
                 .append("| 바뀐 Java 헝크 | ").append(o.hunks()).append("개 (검토 ").append(o.reviewedHunks()).append("개) |\n")
                 .append("| 바뀐 줄에 걸린 경고 | ").append(o.warnings()).append("건 |\n")
-                .append("| 진짜 취약점 | ").append(o.truePositives()).append("건 (새 댓글 ").append(o.posted()).append("개) |\n")
+                .append("| 진짜 취약점 | ").append(o.truePositives()).append("건 (새 댓글 ").append(o.posted())
+                .append("개, 이미 단 댓글 ").append(o.duplicates()).append("개) |\n")
                 .append("| 오탐 추정 | ").append(o.falsePositives()).append("건 |\n")
                 .append("| 판정 못 함 | ").append(o.undecided()).append("건 |\n")
                 .append("| 걸린 시간 | ").append(o.seconds()).append("초 |\n");

@@ -2,6 +2,13 @@
 
 모든 버전은 Git 태그로 남아 있다. 특정 버전을 보려면 `git checkout v0.1.0`을 실행한다.
 
+## v1.3.0 (2026-11-26, 로컬) — GitHub Action 전환
+- **LLM 연결 방식 추가:** OpenAI 형식 `/chat/completions`를 부르는 `OpenAiCompatibleClient`. `SR_LLM_PROVIDER=openai`로 켠다. OpenAI, Groq, Ollama `/v1` 모두 연결된다 (README)
+- **PR 헝크 검토 API `POST /internal/review-hunk`** (`HunkReviewService`, `docs/TEAM_API.md`): 헝크에 걸린 경고를 기존 판정 로직으로 판정한다. 시간은 경고 한 건 30초에서 **PR 전체 예산(최대 45초)**으로 바꿨다. 진짜 취약점에는 남은 시간으로 설명과 수정 방향을 만든다
+- **상수 판정 수정:** 같은 파일의 `final` 필드(`private static final String TABLE = "users"`)를 상수로 계산하지 못해 LLM에 넘기던 문제
+- 측정 (GitHub 기본 러너, 판정 1건): Groq `openai/gpt-oss-120b` 1~2초, `qwen/qwen3.8-27b` 1~1.4초. 같은 러너의 Ollama 7B 72초, 3B 53초는 30초 제한을 넘음
+- 실제 PR 확인 (asdf1454/secureview-runner-bench PR 1): SpotBugs+FindSecBugs SARIF → 판정 → 댓글. SQL 인젝션은 진짜 취약점으로 댓글, 허용 목록으로 정렬 열을 고르는 SQL은 오탐 추정. PR 검토 단계 5~8초
+
 ## v1.2.0 (2026-11-18, 로컬)
 - **상수 판정 (`ConstantArgs`):** 위험한 호출(SQL 실행, `Runtime.exec`·`ProcessBuilder`, `File`·`FileInputStream`·`Paths.get`, 응답 `print`·`write`·`format`)에 들어가는 값이 공격자가 바꿀 수 없는 값뿐인 것을 코드로 계산할 수 있으면, LLM을 부르지 않고 오탐 추정으로 판정 (`JudgeService`, CWE-89·78·22·79)
   - 결과가 정해지는 if·switch는 실행되는 쪽만 보고, List·Map은 넣고 뺀 순서를 따라가고, 같은 파일의 도우미 메서드·내부 클래스 메서드도 따라감
