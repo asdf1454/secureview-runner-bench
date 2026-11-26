@@ -18,6 +18,7 @@ import java.util.function.BooleanSupplier;
 
 /**
  * API 명세의 LLM 서버 내부 API: POST /internal/judge, GET /internal/health.
+ * PR 헝크 검토: POST /internal/review-hunk (docs/HUNK_CODE_REVIEW_DESIGN.md).
  * 환경 변수: SR_INTERNAL_KEY(필수), SR_LLM_HOST(기본 127.0.0.1, 배포 때 VPN 주소), SR_LLM_PORT(기본 8081), OLLAMA_URL.
  * 외부 API: SR_LLM_PROVIDER=openai, SR_LLM_BASE_URL(필수), SR_LLM_MODEL(필수), SR_LLM_API_KEY.
  * Ollama /v1을 쓸 때는 Ollama 쪽에 OLLAMA_CONTEXT_LENGTH=8192, OLLAMA_KEEP_ALIVE=24h를 설정한다(README 참고).
@@ -29,6 +30,7 @@ public final class LlmServer {
 
     private final JudgeService judge;
     private FixApiService fixes;
+    private HunkReviewService hunks;
     private final String model;
     private final BooleanSupplier available;
     private final BooleanSupplier ready;
@@ -55,6 +57,12 @@ public final class LlmServer {
         return this;
     }
 
+    /** POST /internal/review-hunk를 켠다. 설정하지 않으면 그 주소는 404다. */
+    public LlmServer withHunkReview(HunkReviewService hunks) {
+        this.hunks = hunks;
+        return this;
+    }
+
     public void start(String host, int port) throws IOException {
         server = HttpServer.create(new InetSocketAddress(host, port), 0);
         server.createContext("/", this::handle);
@@ -78,6 +86,8 @@ public final class LlmServer {
                 route(exchange);
             } catch (JsonProcessingException e) {
                 error(exchange, 400, "INVALID_INPUT", "요청 JSON 형식이 맞지 않습니다.");
+            } catch (InvalidLineException e) {
+                error(exchange, 400, "INVALID_LINE", e.getMessage());
             } catch (IllegalArgumentException e) {
                 error(exchange, 400, "INVALID_INPUT", e.getMessage());
             } catch (IOException e) {
@@ -99,7 +109,8 @@ public final class LlmServer {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
         boolean fix = fixes != null && path.equals("/internal/fix");
-        if ((path.equals("/internal/judge") || fix) && method.equals("POST")) {
+        boolean hunk = hunks != null && path.equals("/internal/review-hunk");
+        if ((path.equals("/internal/judge") || fix || hunk) && method.equals("POST")) {
             byte[] body = exchange.getRequestBody().readNBytes(MAX_BODY_BYTES + 1);
             if (body.length > MAX_BODY_BYTES) {
                 exchange.getRequestBody().transferTo(OutputStream.nullOutputStream()); // 다 받아야 클라이언트가 응답을 읽는다.
@@ -111,8 +122,8 @@ public final class LlmServer {
                 error(exchange, 503, "INTERNAL_ERROR", "모델을 올리는 중입니다. 잠시 뒤 다시 시도하세요.");
                 return;
             }
-            send(exchange, 200, fix
-                    ? fixes.fix(StructuredLlm.MAPPER.readValue(body, FixRequest.class))
+            send(exchange, 200, fix ? fixes.fix(StructuredLlm.MAPPER.readValue(body, FixRequest.class))
+                    : hunk ? hunks.review(StructuredLlm.MAPPER.readValue(body, HunkReviewRequest.class))
                     : judge.judge(StructuredLlm.MAPPER.readValue(body, JudgeRequest.class)));
         } else if (path.equals("/internal/health") && method.equals("GET")) {
             boolean up = ready.getAsBoolean() && available.getAsBoolean();
@@ -178,7 +189,8 @@ public final class LlmServer {
         AtomicBoolean ready = new AtomicBoolean();
         LlmServer server = new LlmServer(new JudgeService(client, model, JudgeService.TIME_LIMIT),
                 model, available, ready::get, key)
-                .withFixes(new FixApiService(client, model, FixApiService.TIME_LIMIT));
+                .withFixes(new FixApiService(client, model, FixApiService.TIME_LIMIT))
+                .withHunkReview(new HunkReviewService(client, model, HunkReviewService.MAX_BUDGET));
         server.start(host, port);
         System.out.println("LLM 서버 시작: http://" + host + ":" + port + " (" + target
                 + "). 모델을 올리는 중이며, 끝나면 /internal/health가 UP이 됩니다.");

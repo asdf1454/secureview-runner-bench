@@ -68,7 +68,7 @@ public final class JudgeService {
                         explanation(verdict), attackExample(verdict), model, secondsSince(started)));
     }
 
-    private static Verdict constantArgs(Finding finding) {
+    static Verdict constantArgs(Finding finding) {
         String why = "위험한 호출에 들어가는 값이 상수로만 만들어져 공격자가 바꿀 수 없습니다. (LLM 없이 코드로 계산한 판정)";
         return new Verdict(Verdict.Result.LIKELY_FALSE_POSITIVE, 1.0, List.of(finding.startLine()), why,
                 new Verdict.Explanation("오탐으로 추정됩니다.", why, ""));
@@ -95,7 +95,7 @@ public final class JudgeService {
     }
 
     /** 내부 값 UNDETERMINED를 명세 값 UNDECIDED로 바꾼다. */
-    private static String verdictName(Verdict verdict) {
+    static String verdictName(Verdict verdict) {
         return verdict.result() == Verdict.Result.UNDETERMINED ? "UNDECIDED" : verdict.result().name();
     }
 
@@ -108,7 +108,7 @@ public final class JudgeService {
         return inFunction.isEmpty() && decided ? List.of(finding.startLine()) : inFunction;
     }
 
-    private static String explanation(Verdict verdict) {
+    static String explanation(Verdict verdict) {
         return switch (verdict.result()) {
             case TRUE_POSITIVE -> verdict.explanation() == null
                     ? verdict.reason() + " (자세한 설명은 시간 제한 또는 생성 실패로 만들지 못했습니다.)"

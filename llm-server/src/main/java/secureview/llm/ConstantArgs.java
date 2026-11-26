@@ -211,6 +211,9 @@ final class ConstantArgs {
         /** 같은 파일에 선언된 메서드와 클래스 이름. 호출을 따라갈 때 쓴다. */
         private final List<MethodDeclaration> methods;
         private final Set<String> classes = new java.util.HashSet<>();
+        /** 같은 파일의 final 필드와 초기값. 지역 변수가 없을 때 이름 참조를 이 값으로 계산한다. */
+        private final Map<String, Expression> finalFields = new HashMap<>();
+        private final Set<String> evaluatingFields = new java.util.HashSet<>();
         /** 따라가는 중인 메서드마다 return 값을 모은다. 깊이 제한과 재귀 방지에도 쓴다. */
         private final java.util.Deque<List<Value>> returns = new java.util.ArrayDeque<>();
         private final java.util.Deque<MethodDeclaration> calling = new java.util.ArrayDeque<>();
@@ -223,6 +226,10 @@ final class ConstantArgs {
             sinks.forEach(s -> this.sinks.put(s, null));
             methods = unit.findAll(MethodDeclaration.class);
             unit.findAll(ClassOrInterfaceDeclaration.class).forEach(c -> classes.add(c.getNameAsString()));
+            unit.findAll(com.github.javaparser.ast.body.FieldDeclaration.class).stream()
+                    .filter(com.github.javaparser.ast.body.FieldDeclaration::isFinal)
+                    .flatMap(d -> d.getVariables().stream())
+                    .forEach(v -> v.getInitializer().ifPresent(i -> finalFields.put(v.getNameAsString(), i)));
         }
 
         /** 같은 파일의 메서드 하나로 정해지는 호출이면 그 메서드. f(), this.f(), new 내부클래스().f() 만 따라간다. */
@@ -475,7 +482,16 @@ final class ConstantArgs {
                 return Scalar.SAFE;
             }
             if (e instanceof NameExpr n) {
-                return st.get(n.getNameAsString());
+                String name = n.getNameAsString();
+                Expression init = finalFields.get(name);
+                if (!st.vars.containsKey(name) && init != null && evaluatingFields.add(name)) {
+                    try {
+                        return eval(init, new State()) instanceof Scalar s && s.constant() ? s : Scalar.UNKNOWN;
+                    } finally {
+                        evaluatingFields.remove(name);
+                    }
+                }
+                return st.get(name);
             }
             if (e instanceof VariableDeclarationExpr d) {
                 for (VariableDeclarator v : d.getVariables()) {

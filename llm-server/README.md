@@ -99,6 +99,31 @@ $env:OLLAMA_KEEP_ALIVE = '24h'
 ollama serve
 ```
 
+#### 무료 외부 API(Groq)로 실행
+
+1. https://console.groq.com 에 가입하고 https://console.groq.com/keys 에서 키를 만든다. 결제 수단은 넣지 않아도 된다. 무료 한도를 넘으면 요금 대신 429 오류가 난다.
+2. 아래 변수를 설정하고 LLM 서버를 실행한다.
+
+```powershell
+$env:SR_INTERNAL_KEY = '비밀값'
+$env:SR_LLM_PROVIDER = 'openai'
+$env:SR_LLM_BASE_URL = 'https://api.groq.com/openai/v1'
+$env:SR_LLM_MODEL = 'openai/gpt-oss-120b'
+$env:SR_LLM_API_KEY = '발급받은 키'
+./mvnw -q compile exec:java "-Dexec.mainClass=secureview.llm.LlmServer"
+```
+
+3. 판정 요청을 보내 확인한다. 1~2초 안에 `TRUE_POSITIVE`가 나오면 정상이다.
+
+```powershell
+curl.exe -H "X-Internal-Key: 비밀값" -H "Content-Type: application/json" --data-binary "@examples/judge-request.json" http://127.0.0.1:8081/internal/judge
+```
+
+- GitHub Actions에서는 키를 저장소 Secrets에 `LLM_API_KEY`로 넣고 `SR_LLM_API_KEY: ${{ secrets.LLM_API_KEY }}`로 넘긴다.
+- 키를 넣으면 검사할 코드가 그 API 업체로 전송된다.
+- 무료 서비스는 모델이 없어질 수 있다(2026-11 기준 `llama-3.3-70b-versatile`은 이미 없다). `404 model_not_found`가 나면 `curl.exe -H "Authorization: Bearer 키" https://api.groq.com/openai/v1/models`로 목록을 보고 `SR_LLM_MODEL`을 바꾼다.
+- GitHub 러너(ubuntu-latest)에서 판정 1건: Groq `openai/gpt-oss-120b` 1~2초, `qwen/qwen3.8-27b` 1~1.4초. 같은 러너에서 Ollama 7B는 72초, 3B는 53초로 30초 제한을 넘었다(2026-11-25 측정).
+
 `./mvnw` 명령은 PowerShell과 Bash에서 같다. `-D` 옵션은 전체를 따옴표로 감싸야 한다. 따옴표가 없으면 PowerShell이 옵션을 잘라 `Unknown lifecycle phase` 오류가 난다.
 
 Windows PowerShell에서 한글이 깨지면 먼저 아래 두 줄을 실행한다.

@@ -1,0 +1,72 @@
+# SecuReview PR 검토를 끝까지 돌려 본다: SpotBugs+FindSecBugs → SARIF → llm-server(외부 API) → PR 댓글.
+# 분석 단계는 확인용 임시 구성이다(실제 분석은 정성훈·김회승 담당). sample/ 아래 Java만 컴파일해서 분석한다.
+name: pr-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SPOTBUGS_VERSION: 4.8.6
+      FINDSECBUGS_VERSION: 1.13.0
+      SR_INTERNAL_KEY: run-only
+      SR_LLM_PROVIDER: openai
+      SR_LLM_BASE_URL: https://api.groq.com/openai/v1
+      SR_LLM_MODEL: openai/gpt-oss-120b
+      SR_LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      SR_SARIF: ${{ github.workspace }}/spotbugs.sarif
+      MAVEN_OPTS: -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: llm-server 실행 (분석과 동시에 켜 둔다)
+        working-directory: llm-server
+        run: nohup ./mvnw -q -B compile exec:java "-Dexec.mainClass=secureview.llm.LlmServer" > /tmp/llm.log 2>&1 &
+
+      - name: 정적 분석 (SpotBugs + FindSecBugs → SARIF)
+        run: |
+          mkdir -p /tmp/sb build/classes
+          curl -fsSL "https://github.com/spotbugs/spotbugs/releases/download/$SPOTBUGS_VERSION/spotbugs-$SPOTBUGS_VERSION.tgz" | tar -xz -C /tmp/sb
+          curl -fsSL -o /tmp/sb/findsecbugs.jar "https://repo1.maven.org/maven2/com/h3xstream/findsecbugs/findsecbugs-plugin/$FINDSECBUGS_VERSION/findsecbugs-plugin-$FINDSECBUGS_VERSION.jar"
+          javac -g -d build/classes $(find sample/src/main/java -name '*.java')
+          java -jar /tmp/sb/spotbugs-$SPOTBUGS_VERSION/lib/spotbugs.jar -textui -effort:max -low \
+            -pluginList /tmp/sb/findsecbugs.jar -sourcepath sample/src/main/java \
+            "-sarif=$SR_SARIF" build/classes
+          echo "경고 수: $(jq '[.runs[].results[]] | length' "$SR_SARIF")"
+          jq -c '.runs[].results[] | {ruleId, level, uri: .locations[0].physicalLocation.artifactLocation.uri, line: .locations[0].physicalLocation.region.startLine}' "$SR_SARIF"
+          jq -c '.runs[].tool.driver.rules[] | {id, rel: .relationships, tags: .properties.tags}' "$SR_SARIF" | head -20
+
+      - name: llm-server 준비 대기
+        run: |
+          for i in $(seq 1 180); do
+            curl -sf -H "X-Internal-Key: $SR_INTERNAL_KEY" http://127.0.0.1:8081/internal/health && exit 0
+            sleep 1
+          done
+          tail -30 /tmp/llm.log
+          exit 1
+
+      - name: PR 검토와 댓글
+        working-directory: .github/scripts/securereview
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw -q -B compile exec:java
+
+      - name: llm-server 로그
+        if: always()
+        run: tail -40 /tmp/llm.log

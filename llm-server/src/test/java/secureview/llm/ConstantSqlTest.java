@@ -34,6 +34,29 @@ class ConstantSqlTest {
         return ConstantArgs.isConstant(source(body), sink(body));
     }
 
+    /** 같은 파일의 final 필드는 컴파일 때 값이 정해진다. */
+    @Test
+    void finalFieldOfSameFileIsConstant() {
+        String[] body = {"String sql = \"SELECT * FROM \" + TABLE + \" WHERE id = \" + LIMIT;"};
+        assertTrue(ConstantArgs.isConstant(source(body, "  private static final String TABLE = \"users\";",
+                "  private final int LIMIT = 10;"), sink(body)));
+    }
+
+    @Test
+    void nonFinalOrUnknownFieldIsNotConstant() {
+        String[] body = {"String sql = \"SELECT * FROM \" + table;"};
+        assertFalse(ConstantArgs.isConstant(source(body, "  private static String table = \"users\";"), sink(body)));
+        assertFalse(ConstantArgs.isConstant(source(body, "  private final String table = System.getenv(\"T\");"), sink(body)));
+        assertFalse(ConstantArgs.isConstant(source(body), sink(body)));
+    }
+
+    /** 지역 변수가 같은 이름의 필드를 가리면 지역 변수 값을 쓴다. */
+    @Test
+    void localVariableShadowsFinalField() {
+        String[] body = {"String TABLE = param;", "String sql = \"SELECT * FROM \" + TABLE;"};
+        assertFalse(ConstantArgs.isConstant(source(body, "  private static final String TABLE = \"users\";"), sink(body)));
+    }
+
     @Test
     void literalQueryIsConstant() {
         assertTrue(constant("String sql = \"SELECT * FROM U WHERE N='foo'\";"));

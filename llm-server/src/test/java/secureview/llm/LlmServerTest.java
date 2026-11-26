@@ -216,4 +216,51 @@ class LlmServerTest {
         assertEquals("INTERNAL_ERROR", json(r).path("error").asText());
         assertFalse(r.body().contains("NullPointer"));
     }
+
+    private static final String HUNK_BODY = """
+            {"reviewId": "pr-1",
+             "hunk": {"id": "h1", "filePath": "A.java", "language": "java", "baseSha": "b", "headSha": "h",
+                      "newStartLine": 2, "newLineCount": 1, "patch": "@@ -1,0 +2,1 @@",
+                      "addedLines": [{"line": 2, "code": "  String f(String n) { return n; }"}]},
+             "sourceCode": "class A {\\n  String f(String n) { return n; }\\n}\\n",
+             "findings": [{"jobId": "pr-1", "findingId": "e91a", "language": "JAVA", "cwe": "CWE-89",
+                           "title": "SQL 인젝션", "severity": "HIGH", "tool": "FindSecBugs",
+                           "ruleId": "SQL_INJECTION_JDBC", "toolMessage": "m", "line": %d, "sourcePath": "A.java"}],
+             "budgetSec": 10}""";
+
+    private void startWithHunks(LlmClient llm) throws Exception {
+        server = new LlmServer(new JudgeService(llm, "m", Duration.ofSeconds(5)), "m", () -> true, KEY)
+                .withHunkReview(new HunkReviewService(llm, "m", Duration.ofSeconds(5)));
+        server.start("localhost", 0);
+    }
+
+    @Test
+    void reviewHunkReturnsFindings() throws Exception {
+        startWithHunks(new FakeLlm(FACTS));
+
+        HttpResponse<String> r = post("/internal/review-hunk", KEY, HUNK_BODY.formatted(2));
+
+        assertEquals(200, r.statusCode());
+        JsonNode body = json(r);
+        assertEquals("h1", body.path("hunkId").asText());
+        assertEquals("h1:CWE-89:2", body.path("findings").get(0).path("id").asText());
+        assertEquals("LIKELY_FALSE_POSITIVE", body.path("findings").get(0).path("verdict").asText());
+    }
+
+    @Test
+    void reviewHunkRejectsLineOutsideHunk() throws Exception {
+        startWithHunks(new FakeLlm());
+
+        HttpResponse<String> r = post("/internal/review-hunk", KEY, HUNK_BODY.formatted(3));
+
+        assertEquals(400, r.statusCode());
+        assertEquals("INVALID_LINE", json(r).path("error").asText());
+    }
+
+    @Test
+    void reviewHunkIsNotFoundWhenNotEnabled() throws Exception {
+        start(new FakeLlm(), () -> true);
+
+        assertEquals(404, post("/internal/review-hunk", KEY, HUNK_BODY.formatted(2)).statusCode());
+    }
 }
