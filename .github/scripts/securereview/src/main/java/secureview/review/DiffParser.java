@@ -110,7 +110,7 @@ public final class DiffParser {
         }
     }
 
-    private static String sha256(String text) {
+    static String sha256(String text) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException e) {

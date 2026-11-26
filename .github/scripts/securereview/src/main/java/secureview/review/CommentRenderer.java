@@ -14,8 +14,9 @@ public final class CommentRenderer {
     private CommentRenderer() {
     }
 
-    public static String marker(String headSha, String findingId) {
-        return "<!-- securereview-id: " + headSha + ":" + findingId + " -->";
+    /** key는 파일·CWE·코드 줄로 만든 값이라, 줄 위치가 바뀌어도 같은 취약점이면 같은 표시가 된다 (PrReviewer.placeKey). */
+    public static String marker(String key) {
+        return "<!-- securereview-id: " + key + " -->";
     }
 
     public static String summaryMarker(String headSha) {
