@@ -32,4 +32,11 @@ public class UserDao {
         String sql = "SELECT * FROM " + TABLE + " ORDER BY id";
         return conn.createStatement().executeQuery(sql);
     }
+
+    /** 정렬: 허용한 열 이름만 쓴다 (오탐이어야 함). */
+    public ResultSet sorted(String column) throws SQLException {
+        String col = "name".equals(column) ? "name" : "id";
+        String sql = "SELECT * FROM users ORDER BY " + col;
+        return conn.createStatement().executeQuery(sql);
+    }
 }
