@@ -76,9 +76,9 @@ public final class PrReviewer {
         // 바뀐 줄에 걸린 경고만 남긴다. 원래 있던 코드의 경고는 이 PR의 책임이 아니다.
         Map<Hunk, List<Warning>> targets = new HashMap<>();
         for (Hunk hunk : hunks) {
-            List<Warning> mine = warnings.stream()
+            List<Warning> mine = merged(warnings.stream()
                     .filter(w -> w.matches(hunk.filePath()) && hunk.added(w.line()))
-                    .toList();
+                    .toList());
             if (!mine.isEmpty()) {
                 targets.put(hunk, mine);
             }
@@ -132,6 +132,7 @@ public final class PrReviewer {
 
         String existing = String.join("\n", github.existingBodies());
         List<InlineComment> comments = new ArrayList<>();
+        Set<String> added = new java.util.HashSet<>();
         int truePositives = 0;
         int falsePositives = 0;
         int undecided = unreviewedWarnings;
@@ -151,8 +152,8 @@ public final class PrReviewer {
                         + ": 취약하다고 판정했지만 바뀐 줄이 아니라 줄 댓글을 달 수 없습니다.");
                 continue;
             }
-            String marker = CommentRenderer.marker(headSha, r.id());
-            if (existing.contains(marker)) {
+            String marker = CommentRenderer.marker(placeKey(hunk, r));
+            if (existing.contains(marker) || !added.add(marker)) {
                 duplicates++;
                 continue;
             }
@@ -167,6 +168,28 @@ public final class PrReviewer {
             github.postReview(headSha, CommentRenderer.summary(outcome, summaryMarker), comments);
         }
         return outcome;
+    }
+
+    /**
+     * 중복 확인 키: 파일, CWE, 그 줄의 코드. 위에 줄이 추가되어 줄 번호나 헝크가 바뀌어도 같은 코드의 같은 취약점이면 같은 키다.
+     * 같은 파일에 똑같은 코드 줄이 두 번 있으면 한 번만 단다.
+     */
+    private static String placeKey(Hunk hunk, Reviewed r) {
+        String code = hunk.addedLines().stream().filter(a -> a.line() == r.line()).findFirst()
+                .map(a -> a.code().strip()).orElse("");
+        return DiffParser.sha256(hunk.filePath() + "\n" + r.cwe() + "\n" + code).substring(0, 32);
+    }
+
+    /**
+     * 같은 줄·같은 CWE 경고는 한 건으로 합친다. FindSecBugs와 SpotBugs가 같은 SQL 실행을 서로 다른 규칙으로 내는 경우가 있다.
+     * 심각도가 높은 쪽을 남긴다.
+     */
+    private static List<Warning> merged(List<Warning> warnings) {
+        Map<String, Warning> byPlace = new java.util.LinkedHashMap<>();
+        for (Warning w : warnings) {
+            byPlace.merge(w.line() + ":" + w.cwe(), w, (a, b) -> bestRank(List.of(b)) < bestRank(List.of(a)) ? b : a);
+        }
+        return List.copyOf(byPlace.values());
     }
 
     private static int bestRank(List<Warning> warnings) {

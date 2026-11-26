@@ -36,8 +36,12 @@ class PrReviewerTest {
         final List<List<PrReviewer.InlineComment>> posted = new ArrayList<>();
         final List<String> bodies = new ArrayList<>();
 
-        @Override public String diff() { return DIFF; }
-        @Override public String headSha() { return "sha1"; }
+        String diff = DIFF;
+
+        @Override public String diff() { return diff; }
+        String head = "sha1";
+
+        @Override public String headSha() { return head; }
         @Override public String file(String path, int maxBytes) { return "class X {}\n".repeat(3); }
         @Override public List<String> existingBodies() { return existing; }
 
@@ -88,9 +92,56 @@ class PrReviewerTest {
         assertEquals(1, comments.size());
         assertEquals("src/A.java", comments.get(0).path());
         assertEquals(2, comments.get(0).line());
-        assertTrue(comments.get(0).body().contains("<!-- securereview-id: sha1:"));
+        assertTrue(comments.get(0).body().contains("<!-- securereview-id: "));
         assertTrue(comments.get(0).body().contains("**수정 방향:** 바인딩 사용"));
         assertTrue(gh.bodies.get(0).contains("<!-- securereview-summary: sha1 -->"));
+    }
+
+    /** FindSecBugs와 SpotBugs가 같은 줄의 같은 CWE를 다른 규칙으로 내면 한 건으로 판정하고 댓글도 하나만 단다. */
+    @Test
+    void sameLineAndCweFromTwoRulesIsOneFinding() {
+        FakeGitHub gh = new FakeGitHub();
+        FakeLlm llm = new FakeLlm((h, w) -> "TRUE_POSITIVE");
+        Warning other = new Warning("src/A.java", 2, "CWE-89", "HIGH", "SQL_NONCONSTANT", "Nonconstant", "m", "SpotBugs");
+
+        PrReviewer.Outcome o = reviewer(gh, llm, PrReviewer.Settings.DEFAULT).run(List.of(A2, other));
+
+        assertEquals(1, o.warnings());
+        assertEquals(1, gh.posted.get(0).size());
+        assertTrue(gh.posted.get(0).get(0).body().contains("Nonconstant"), "심각도가 높은 쪽을 남긴다");
+    }
+
+    /** 다음 커밋을 올려도 바뀌지 않은 헝크의 같은 취약점에는 댓글을 다시 달지 않는다. 요약은 커밋마다 하나. */
+    @Test
+    void newCommitDoesNotRepeatCommentForUnchangedHunk() {
+        FakeGitHub gh = new FakeGitHub();
+        FakeLlm llm = new FakeLlm((h, w) -> "TRUE_POSITIVE");
+
+        reviewer(gh, llm, PrReviewer.Settings.DEFAULT).run(List.of(A2));
+        gh.head = "sha2";
+        PrReviewer.Outcome again = reviewer(gh, llm, PrReviewer.Settings.DEFAULT).run(List.of(A2));
+
+        assertEquals(2, gh.posted.size(), "새 커밋의 요약은 단다");
+        assertTrue(gh.posted.get(1).isEmpty(), "줄 댓글은 다시 달지 않는다");
+        assertEquals(1, again.duplicates());
+        assertTrue(gh.bodies.get(1).contains("securereview-summary: sha2"));
+    }
+
+    /** 위에 줄이 추가되어 줄 번호와 헝크가 바뀌어도, 같은 코드 줄의 같은 취약점에는 댓글을 다시 달지 않는다. */
+    @Test
+    void shiftedLineDoesNotRepeatComment() {
+        FakeGitHub gh = new FakeGitHub();
+        FakeLlm llm = new FakeLlm((h, w) -> "TRUE_POSITIVE");
+        reviewer(gh, llm, PrReviewer.Settings.DEFAULT).run(List.of(A2));
+
+        gh.head = "sha2";
+        gh.diff = DIFF.replace("@@ -1,2 +1,3 @@\n class A {\n", "@@ -1,2 +1,4 @@\n class A {\n+    int x;\n");
+        PrReviewer.Outcome again = reviewer(gh, llm, PrReviewer.Settings.DEFAULT)
+                .run(List.of(new Warning("src/A.java", 3, "CWE-89", "MEDIUM", "SQL", "SQL 인젝션", "m", "SpotBugs")));
+
+        assertEquals(1, again.truePositives());
+        assertTrue(gh.posted.get(1).isEmpty());
+        assertEquals(1, again.duplicates());
     }
 
     @Test
@@ -169,7 +220,7 @@ class PrReviewerTest {
     @Test
     void llmTextCannotMentionOrForgeMarkers() {
         String body = CommentRenderer.inline(new PrReviewer.Reviewed("id", "CWE-89", "HIGH", 2, "t", "TRUE_POSITIVE",
-                "@org/team 확인 <!-- securereview-summary: sha1 -->", List.of(2), null), CommentRenderer.marker("sha1", "id"));
+                "@org/team 확인 <!-- securereview-summary: sha1 -->", List.of(2), null), CommentRenderer.marker("id"));
 
         assertFalse(body.contains("@org"));
         assertEquals(1, body.split("<!--", -1).length - 1, "표시는 마지막 한 개뿐");

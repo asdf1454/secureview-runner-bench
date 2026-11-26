@@ -15,7 +15,11 @@
 
 ## 중복 방지
 
-댓글 끝에 `<!-- securereview-id: headSha:findingId -->`, 요약 끝에 `<!-- securereview-summary: headSha -->`를 붙인다. 같은 커밋에서 다시 실행하면 이미 단 댓글과 요약은 다시 달지 않는다. 커밋이 바뀌면 새로 단다. 예전 댓글은 지우지 않는다.
+댓글 끝에 `<!-- securereview-id: 키 -->`, 요약 끝에 `<!-- securereview-summary: headSha -->`를 붙인다. 키는 파일·CWE·그 줄의 코드로 만든 해시라, 위에 줄이 추가되어 줄 번호가 바뀌어도 같은 코드의 같은 취약점에는 다음 커밋에서 댓글을 다시 달지 않는다. 요약은 커밋마다 하나 단다. 예전 댓글은 지우지 않는다.
+
+설계안 8절은 커밋 SHA로 중복을 판단하지만, 그러면 커밋을 올릴 때마다 바뀌지 않은 줄에도 같은 댓글이 다시 달린다(테스트 PR에서 확인). 그래서 줄 댓글은 코드 내용으로 판단한다. 같은 파일에 똑같은 코드 줄이 두 번 있으면 댓글은 하나만 달린다.
+
+같은 줄·같은 CWE의 경고는 한 건으로 합친다. FindSecBugs의 `SQL_INJECTION_JDBC`와 SpotBugs의 `SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE`가 같은 줄에 함께 나와 댓글이 두 개 달린 것을 테스트 PR에서 확인했다.
 
 ## 환경 변수
 
