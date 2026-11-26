@@ -8,6 +8,7 @@ import java.sql.SQLException;
 public class UserDao {
 
     private static final String TABLE = "users";
+    private static final int PAGE_SIZE = 20;
 
     private final Connection conn;
 
