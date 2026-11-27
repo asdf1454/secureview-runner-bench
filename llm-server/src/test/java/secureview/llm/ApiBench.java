@@ -85,6 +85,7 @@ public final class ApiBench {
         ContextExtractor extractor = new ContextExtractor();
         Path code = benchDir.resolve("src/main/java/org/owasp/benchmark/testcode");
 
+        Files.createDirectories(out.toAbsolutePath().getParent());
         Set<String> done = new HashSet<>();
         for (JsonNode r : read(out)) {
             done.add(r.path("test").asText());

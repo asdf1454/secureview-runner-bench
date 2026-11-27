@@ -77,6 +77,7 @@ jobs:
           else
             args="large examples/Large500.java $RUNS"
           fi
+          set -o pipefail
           ./mvnw -q -B test-compile exec:java -Dexec.classpathScope=test -Dexec.mainClass=secureview.llm.ApiBench "-Dexec.args=$args" \
             | tee /tmp/bench.log
 
