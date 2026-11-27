@@ -17,6 +17,10 @@ final class StructuredLlm {
     static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    /** 사용 한도(429)에 걸렸을 때 기다렸다 다시 보내는 최대 횟수와, 이보다 오래 기다려야 하면 포기하는 시간(하루 한도 등). */
+    static final int MAX_LIMIT_WAITS = 3;
+    static final long MAX_LIMIT_WAIT_MILLIS = 60_000;
+
     private final LlmClient client;
     private final int maxAttempts;
 
@@ -36,6 +40,7 @@ final class StructuredLlm {
     /** @param schema 출력 형식을 강제할 JSON 스키마. null이면 일반 JSON */
     <T> Optional<T> ask(String prompt, JsonNode schema, Class<T> type, Function<T, String> problemOf) {
         String current = prompt;
+        int limitWaits = 0;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             String problem;
             try {
@@ -49,6 +54,20 @@ final class StructuredLlm {
                 problem = "JSON 형식이 맞지 않음: " + e.getOriginalMessage();
             } catch (LlmUnavailableException e) {
                 throw e;
+            } catch (LlmRateLimitException e) {
+                // 한도는 응답 내용의 문제가 아니므로 시도 횟수에 넣지 않고, 알려 준 시간만큼 기다렸다 같은 요청을 다시 보낸다.
+                // 하루 한도처럼 오래 기다려야 하면 바로 포기한다. 기다리는 중에 시간 예산이 끝나면 호출자가 끊는다.
+                if (limitWaits++ >= MAX_LIMIT_WAITS || e.waitMillis() > MAX_LIMIT_WAIT_MILLIS) {
+                    throw e;
+                }
+                try {
+                    Thread.sleep(e.waitMillis());
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return Optional.empty();
+                }
+                attempt--;
+                continue;
             } catch (LlmException e) {
                 if (Thread.currentThread().isInterrupted()) {
                     return Optional.empty(); // 시간 제한으로 끊긴 호출은 다시 묻지 않는다.

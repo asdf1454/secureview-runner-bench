@@ -282,13 +282,12 @@ public final class ApiBench {
         return b == 0 ? "-" : String.format("%d/%d (%.1f%%)", a, b, 100.0 * a / b);
     }
 
-    /** 429(무료 한도)와 일시적인 5xx를 기다렸다 다시 보낸다. 기다린 시간은 처리 시간에서 뺀다. */
+    /**
+     * 429(무료 한도)와 일시적인 5xx를 기다렸다 다시 보낸다. 기다린 시간은 처리 시간에서 뺀다.
+     * 제품의 StructuredLlm도 429를 기다리지만 1분 넘는 대기(하루 한도)는 포기한다. 측정은 제한 시간까지 기다린다.
+     */
     static final class WaitOnLimit implements LlmClient {
 
-        private static final Pattern WAIT = Pattern.compile(
-                "try again in (?:(\\d+)h)?(?:(\\d+)m(?!s))?(?:([\\d.]+)s)?", Pattern.CASE_INSENSITIVE);
-        private static final Pattern WAIT_MS = Pattern.compile("try again in ([\\d.]+)ms", Pattern.CASE_INSENSITIVE);
-        private static final Pattern KIND = Pattern.compile("\\((TPM|TPD|RPM|RPD)\\)");
         private static final Pattern STATUS = Pattern.compile("응답 코드 (\\d{3})");
 
         private final LlmClient client;
@@ -322,15 +321,13 @@ public final class ApiBench {
                 } catch (LlmUnavailableException e) {
                     throw e;
                 } catch (LlmException e) {
-                    String message = String.valueOf(e.getMessage());
-                    Matcher status = STATUS.matcher(message);
+                    Matcher status = STATUS.matcher(String.valueOf(e.getMessage()));
                     int code = status.find() ? Integer.parseInt(status.group(1)) : 0;
                     long wait;
                     String why;
-                    if (code == 429) {
-                        wait = waitMillis(message);
-                        Matcher kind = KIND.matcher(message);
-                        why = "무료 한도 " + (kind.find() ? kind.group(1) : "");
+                    if (e instanceof LlmRateLimitException limit) {
+                        wait = limit.waitMillis();
+                        why = limit.getMessage();
                     } else if (code >= 500 && serverErrors++ < 3) {
                         wait = 10_000;
                         why = "서버 오류 " + code;
@@ -350,22 +347,6 @@ public final class ApiBench {
                     slept += wait;
                 }
             }
-        }
-
-        /** Groq 429 본문의 "Please try again in 7.05s" / "2m30.5s" / "450ms". 못 읽으면 10초. 0.5초 여유를 둔다. */
-        static long waitMillis(String message) {
-            Matcher ms = WAIT_MS.matcher(message);
-            if (ms.find()) {
-                return (long) Double.parseDouble(ms.group(1)) + 500;
-            }
-            Matcher m = WAIT.matcher(message);
-            if (m.find() && (m.group(1) != null || m.group(2) != null || m.group(3) != null)) {
-                double sec = (m.group(1) == null ? 0 : Integer.parseInt(m.group(1)) * 3600)
-                        + (m.group(2) == null ? 0 : Integer.parseInt(m.group(2)) * 60)
-                        + (m.group(3) == null ? 0 : Double.parseDouble(m.group(3)));
-                return (long) (sec * 1000) + 500;
-            }
-            return 10_000;
         }
     }
 

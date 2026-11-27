@@ -63,7 +63,7 @@ class HttpApiTest {
             out = """
                     {"hunkId":"h","findings":[{"id":"h:CWE-89:2","cwe":"CWE-89","severity":"HIGH","line":2,
                      "title":"SQL","verdict":"TRUE_POSITIVE","confidence":0.9,"explanation":"설명",
-                     "evidenceLines":[1,2],"suggestion":"바인딩"}]}""";
+                     "evidenceLines":[1,2],"suggestion":"바인딩"}],"rateLimited":true}""";
         } else {
             status = 404;
             out = "{}";
@@ -118,8 +118,11 @@ class HttpApiTest {
                 """, 1 << 16).get(0);
         Warning w = new Warning("src/A.java", 2, "CWE-89", "HIGH", "SQL_INJECTION_JDBC", "SQL", "msg", "SpotBugs");
 
-        List<PrReviewer.Reviewed> r = new LlmApi(url(), "k").review("abc", hunk, "class A {}", List.of(w), 30);
+        LlmApi llm = new LlmApi(url(), "k");
+        assertFalse(llm.rateLimited());
+        List<PrReviewer.Reviewed> r = llm.review("abc", hunk, "class A {}", List.of(w), 30);
 
+        assertTrue(llm.rateLimited());
         assertEquals("TRUE_POSITIVE", r.get(0).verdict());
         assertEquals(List.of(1, 2), r.get(0).evidenceLines());
         assertEquals("바인딩", r.get(0).suggestion());

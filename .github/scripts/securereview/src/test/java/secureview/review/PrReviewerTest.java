@@ -55,7 +55,7 @@ class PrReviewerTest {
     }
 
     /** 경고마다 정해 둔 판정을 돌려주는 LLM. 받은 예산을 기록한다. */
-    static final class FakeLlm implements PrReviewer.Llm {
+    static class FakeLlm implements PrReviewer.Llm {
         final List<Integer> budgets = new ArrayList<>();
         final List<String> files = new ArrayList<>();
         private final BiFunction<Hunk, Warning, String> verdict;
@@ -225,5 +225,24 @@ class PrReviewerTest {
 
         assertFalse(body.contains("@org"));
         assertEquals(1, body.split("<!--", -1).length - 1, "표시는 마지막 한 개뿐");
+    }
+
+    @Test
+    void summaryTellsWhenApiLimitWasHit() {
+        FakeGitHub gh = new FakeGitHub();
+        FakeLlm limited = new FakeLlm((h, w) -> "UNDECIDED") {
+            @Override
+            public boolean rateLimited() {
+                return true;
+            }
+        };
+
+        PrReviewer.Outcome o = reviewer(gh, limited, PrReviewer.Settings.DEFAULT).run(List.of(A2));
+
+        assertTrue(o.problems().stream().anyMatch(p -> p.contains("사용 한도")), o.problems().toString());
+        assertTrue(gh.bodies.get(0).contains("사용 한도"));
+        FakeGitHub ok = new FakeGitHub();
+        assertTrue(reviewer(ok, new FakeLlm((h, w) -> "TRUE_POSITIVE"), PrReviewer.Settings.DEFAULT).run(List.of(A2))
+                .problems().stream().noneMatch(p -> p.contains("사용 한도")));
     }
 }

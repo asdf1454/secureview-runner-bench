@@ -133,4 +133,37 @@ class OpenAiCompatibleClientTest {
         LlmException e = assertThrows(LlmException.class, () -> client("secret-key").generateJson("p"));
         assertFalse(e.getMessage().contains("secret-key"));
     }
+
+    @Test
+    void rateLimitThrowsWithWaitTimeAndWithoutBody() {
+        status = 429;
+        reply = "{\"error\":{\"message\":\"Rate limit reached in organization `org_abc` on tokens per minute (TPM): "
+                + "Please try again in 7.05s.\"}}";
+        OpenAiCompatibleClient c = client("k");
+
+        LlmRateLimitException e = assertThrows(LlmRateLimitException.class, () -> c.generateJson("p"));
+        assertEquals(7_550, e.waitMillis());
+        assertTrue(e.getMessage().contains("TPM"));
+        assertFalse(e.getMessage().contains("org_abc"));
+        assertEquals(1, c.rateLimitHits());
+    }
+
+    @Test
+    void readsWaitTimes() {
+        assertEquals(3_500, OpenAiCompatibleClient.waitMillis("3", "try again in 9s"));
+        assertEquals(150_500, OpenAiCompatibleClient.waitMillis(null, "(TPD): Please try again in 2m30s."));
+        assertEquals(3_600_500, OpenAiCompatibleClient.waitMillis(null, "Please try again in 1h0m0s"));
+        assertEquals(950, OpenAiCompatibleClient.waitMillis(null, "Please try again in 450ms."));
+        assertEquals(10_000, OpenAiCompatibleClient.waitMillis(null, "rate limited"));
+    }
+
+    @Test
+    void countsTokensFromUsage() {
+        reply = "{\"choices\":[{\"message\":{\"content\":\"{}\"}}],\"usage\":{\"total_tokens\":1234}}";
+        OpenAiCompatibleClient c = client("k");
+
+        c.generateJson("p");
+        c.generateJson("p");
+        assertEquals(2468, c.tokensUsed());
+    }
 }

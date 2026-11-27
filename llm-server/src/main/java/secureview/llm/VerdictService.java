@@ -81,6 +81,8 @@ public final class VerdictService {
                     .orElseGet(() -> Verdict.undetermined("LLM 응답이 형식·근거 검사를 통과하지 못함"));
         } catch (LlmUnavailableException e) {
             return Verdict.undetermined("Ollama 서버에 연결하지 못해 LLM 검토를 하지 못했습니다. 실행 여부를 확인하세요.");
+        } catch (LlmRateLimitException e) {
+            return Verdict.undetermined("LLM API 사용 한도에 걸려 검토하지 못했습니다. 잠시 후 다시 실행하거나 요금제를 확인하세요.");
         }
     }
 
@@ -100,7 +102,7 @@ public final class VerdictService {
                     .map(e -> new Verdict(verdict.result(), verdict.confidence(), verdict.evidenceLines(),
                             e.reason() == null ? verdict.reason() : e.reason(), e.explanation()))
                     .orElse(verdict);
-        } catch (LlmUnavailableException e) {
+        } catch (LlmUnavailableException | LlmRateLimitException e) {
             return verdict;
         }
     }

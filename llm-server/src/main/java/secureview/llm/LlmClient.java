@@ -12,4 +12,9 @@ public interface LlmClient {
     default String generateJson(String prompt, JsonNode schema) {
         return generateJson(prompt);
     }
+
+    /** 지금까지 사용 한도(429)에 걸린 횟수. 한도가 없는 구현(Ollama)은 0. */
+    default long rateLimitHits() {
+        return 0;
+    }
 }

@@ -25,6 +25,7 @@ public final class HunkReviewService {
     public static final Duration MAX_BUDGET = Duration.ofSeconds(45);
 
     private final ContextExtractor extractor = new ContextExtractor();
+    private final LlmClient client;
     private final VerdictService verdicts;
     private final VerdictBatch batch;
     private final FixService fixes;
@@ -38,6 +39,7 @@ public final class HunkReviewService {
 
     /** @param maxBudget 요청 한 번에 쓸 수 있는 최대 시간. budgetSec가 없거나 더 크면 이 값을 쓴다 */
     public HunkReviewService(LlmClient client, String model, Duration maxBudget) {
+        this.client = client;
         this.verdicts = new VerdictService(client);
         this.batch = new VerdictBatch(verdicts);
         this.fixes = new FixService(client);
@@ -48,6 +50,7 @@ public final class HunkReviewService {
     /** @throws IllegalArgumentException 필수 값이 없거나 형식이 틀린 요청. 경고 줄이 헝크 밖이면 {@link InvalidLineException} */
     public HunkReviewResponse review(HunkReviewRequest request) {
         long started = System.nanoTime();
+        long limitHits = client.rateLimitHits();
         HunkReviewRequest.Hunk hunk = request.hunk();
         if (hunk == null || hunk.id() == null || hunk.id().isBlank()) {
             throw new IllegalArgumentException("hunk.id가 없습니다.");
@@ -112,7 +115,8 @@ public final class HunkReviewService {
                     JudgeService.verdictName(verdict), verdict.confidence(), JudgeService.explanation(verdict),
                     evidence(verdict, finding), suggestions.get(entry.getKey()), model, secondsSince(started)));
         }
-        return new HunkReviewResponse(hunk.id(), results);
+        // 서버 전체의 횟수라 동시에 다른 요청이 한도에 걸려도 true가 될 수 있다. PR 검토는 헝크를 하나씩 보내므로 문제없다.
+        return new HunkReviewResponse(hunk.id(), results, client.rateLimitHits() > limitHits);
     }
 
     private Duration budget(Integer budgetSec) {

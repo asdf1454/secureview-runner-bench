@@ -7,6 +7,8 @@
 - **PR 헝크 검토 API `POST /internal/review-hunk`** (`HunkReviewService`, `docs/TEAM_API.md`): 헝크에 걸린 경고를 기존 판정 로직으로 판정한다. 시간은 경고 한 건 30초에서 **PR 전체 예산(최대 45초)**으로 바꿨다. 진짜 취약점에는 남은 시간으로 설명과 수정 방향을 만든다
 - **상수 판정 수정:** 같은 파일의 `final` 필드(`private static final String TABLE = "users"`)를 상수로 계산하지 못해 LLM에 넘기던 문제
 - 측정 (GitHub 기본 러너, 판정 1건): Groq `openai/gpt-oss-120b` 1~2초, `qwen/qwen3.8-27b` 1~1.4초. 같은 러너의 Ollama 7B 72초, 3B 53초는 30초 제한을 넘음
+- **사용 한도(429) 처리:** 전에는 한도에 걸리면 기다리지 않고 바로 다시 보내 결국 판정 불가가 됐다. 이제 API가 알려 준 시간만큼 기다렸다 다시 보내고(시도 횟수에 넣지 않음, 최대 3번), 하루 한도처럼 1분 넘게 기다려야 하면 바로 "사용 한도" 판정 불가로 둔다. 응답의 `rateLimited`로 PR 요약에 "사용 한도에 걸렸다"고 알린다. 429 본문(조직 ID 포함)은 로그에 남기지 않는다
+- **외부 API 측정기** (`ApiBench`, runner-bench `groq-bench` 워크플로): OWASP Benchmark SQL·명령어·경로·XSS에서 진짜·안전을 같은 수로 504건 골라 PR 검토와 같은 순서로 판정. 무료 하루 한도를 넘으므로 결과를 한 건씩 저장하고 이어서 잰다. 사용 토큰도 센다
 - 실제 PR 확인 (asdf1454/secureview-runner-bench PR 1): SpotBugs+FindSecBugs SARIF → 판정 → 댓글. SQL 인젝션은 진짜 취약점으로 댓글, 허용 목록으로 정렬 열을 고르는 SQL은 오탐 추정. PR 검토 단계 5~8초
 
 ## v1.2.0 (2026-11-18, 로컬)

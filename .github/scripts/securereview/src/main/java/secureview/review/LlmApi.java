@@ -17,6 +17,13 @@ final class LlmApi implements PrReviewer.Llm {
     private final String baseUrl;
     private final String key;
 
+    private boolean rateLimited;
+
+    @Override
+    public boolean rateLimited() {
+        return rateLimited;
+    }
+
     LlmApi(String baseUrl, String key) {
         this.baseUrl = baseUrl;
         this.key = key;
@@ -51,6 +58,7 @@ final class LlmApi implements PrReviewer.Llm {
         } catch (Exception e) {
             throw new IllegalStateException("LLM 서버 응답 JSON을 읽지 못했습니다.");
         }
+        rateLimited |= response.path("rateLimited").asBoolean(false);
         List<PrReviewer.Reviewed> results = new ArrayList<>();
         for (JsonNode f : response.path("findings")) {
             List<Integer> evidence = new ArrayList<>();

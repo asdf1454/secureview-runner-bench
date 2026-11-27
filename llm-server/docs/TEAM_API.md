@@ -90,7 +90,8 @@ curl -H "X-Internal-Key: 비밀값" -H "Content-Type: application/json" --data-b
  "findings": [{"id": "헝크해시:CWE-89:27", "findingId": "요청한 경고 id", "cwe": "CWE-89", "severity": "MEDIUM",
                "line": 27, "endLine": 27, "title": "...", "verdict": "TRUE_POSITIVE", "confidence": 1.0,
                "explanation": "...", "evidenceLines": [26, 27], "suggestion": "PreparedStatement로 바인딩...",
-               "model": "openai/gpt-oss-120b", "latencySec": 4.2}]}
+               "model": "openai/gpt-oss-120b", "latencySec": 4.2}],
+ "rateLimited": false}
 ```
 
 | 항목 | 동작 |
@@ -100,6 +101,7 @@ curl -H "X-Internal-Key: 비밀값" -H "Content-Type: application/json" --data-b
 | `suggestion` | S6 수정안의 이유 문장(수정 방향). 수정 코드 자체는 재검증 전이라 내보내지 않는다 |
 | `findingId` | 설계안에 없는 값. 요청한 경고와 결과를 잇는다 |
 | `confidence` | LLM이 스스로 낸 값이라 PR 댓글에는 보여 주지 않는다 |
+| 사용 한도(429) | 외부 API가 한도로 거절하면 알려 준 시간만큼 기다렸다 같은 요청을 다시 보낸다(최대 3번, 예산 안에서). 1분 넘게 기다려야 하면(하루 한도 등) 기다리지 않고 `UNDECIDED`, 설명은 "LLM API 사용 한도에 걸려…". 이 요청 중에 한 번이라도 걸렸으면 `rateLimited: true`(설계안에 없는 값). 실행기는 PR 요약에 알린다 |
 | 오류 | 경고 줄이 헝크 범위(`newStartLine` ~ `newStartLine+newLineCount-1`) 밖이면 400 `INVALID_LINE`. `hunk.id`나 `sourceCode`가 없으면 400 `INVALID_INPUT` |
 
 ### 명세에 없거나 명세와 다른 동작 (팀 확인 필요)

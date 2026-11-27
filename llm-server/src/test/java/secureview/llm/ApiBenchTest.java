@@ -15,20 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ApiBenchTest {
 
     @Test
-    void readsGroqWaitTimes() {
-        assertEquals(7_550, ApiBench.WaitOnLimit.waitMillis("Limit 8000 ... Please try again in 7.05s. Need more tokens?"));
-        assertEquals(150_500, ApiBench.WaitOnLimit.waitMillis("on tokens per day (TPD): Please try again in 2m30s."));
-        assertEquals(3_600_500, ApiBench.WaitOnLimit.waitMillis("Please try again in 1h0m0s"));
-        assertEquals(950, ApiBench.WaitOnLimit.waitMillis("Please try again in 450ms."));
-        assertEquals(10_000, ApiBench.WaitOnLimit.waitMillis("rate limited"));
-    }
-
-    @Test
     void waitsOnLimitThenSucceeds() {
         AtomicInteger calls = new AtomicInteger();
         LlmClient limited = prompt -> {
             if (calls.incrementAndGet() == 1) {
-                throw new LlmException("LLM API 응답 코드 429: (TPM) Please try again in 0.01s");
+                throw new LlmRateLimitException("LLM API 사용 한도 초과 (429, TPM)", 510);
             }
             return "{}";
         };
@@ -41,7 +32,7 @@ class ApiBenchTest {
     @Test
     void stopsWhenWaitPassesDeadlineAndKeepsOtherErrors() {
         LlmClient daily = prompt -> {
-            throw new LlmException("LLM API 응답 코드 429: (TPD) Please try again in 30m");
+            throw new LlmRateLimitException("LLM API 사용 한도 초과 (429, TPD)", 30 * 60_000);
         };
         assertThrows(ApiBench.Stop.class,
                 () -> new ApiBench.WaitOnLimit(daily, System.currentTimeMillis() + 60_000).generateJson("p"));

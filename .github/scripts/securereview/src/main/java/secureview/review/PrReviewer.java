@@ -32,6 +32,11 @@ public final class PrReviewer {
 
     public interface Llm {
         List<Reviewed> review(String reviewId, Hunk hunk, String source, List<Warning> warnings, int budgetSec);
+
+        /** 지금까지의 검토 중 LLM API 사용 한도(무료 한도 등)에 걸린 적이 있는가. */
+        default boolean rateLimited() {
+            return false;
+        }
     }
 
     public record Settings(int budgetSec, int maxHunks, int maxFiles, int maxSourceBytes, int maxPatchBytes) {
@@ -124,6 +129,10 @@ public final class PrReviewer {
                 unreviewedWarnings += targets.get(hunk).size();
                 problems.add(hunk.filePath() + " " + hunk.header() + ": LLM 검토 실패 (" + e.getMessage() + ")");
             }
+        }
+        if (llm.rateLimited()) {
+            problems.add("LLM API 사용 한도(무료 한도 등)에 걸렸습니다. 일부 경고가 '판정 못 함'이거나 설명·수정 방향이 빠졌을 수 있습니다."
+                    + " 잠시 후 다시 실행하거나 API 요금제를 확인하세요.");
         }
         if (skipped > 0) {
             problems.add("시간 예산(" + settings.budgetSec() + "초) 또는 상한(헝크 " + settings.maxHunks() + "개, 파일 "

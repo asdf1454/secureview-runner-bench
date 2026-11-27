@@ -138,4 +138,58 @@ class HunkReviewServiceTest {
         assertThrows(IllegalArgumentException.class, () -> s.review(new HunkReviewRequest("pr",
                 new HunkReviewRequest.Hunk("", "a", "java", "b", "h", 1, 1, "", List.of()), SOURCE, List.of(), null)));
     }
+
+    /** 첫 호출에서 한 번 한도(429)에 걸린 뒤 정해 둔 응답을 돌려준다. waitMillis가 크면 매번 한도에 걸린다. */
+    private static final class LimitedLlm implements LlmClient {
+        private final FakeLlm answers;
+        private final long waitMillis;
+        private final boolean always;
+        private long hits;
+
+        LimitedLlm(long waitMillis, boolean always, String... answers) {
+            this.answers = new FakeLlm(answers);
+            this.waitMillis = waitMillis;
+            this.always = always;
+        }
+
+        @Override
+        public String generateJson(String prompt) {
+            if (always || hits == 0) {
+                hits++;
+                throw new LlmRateLimitException("LLM API 사용 한도 초과 (429, TPM)", waitMillis);
+            }
+            return answers.generateJson(prompt);
+        }
+
+        @Override
+        public long rateLimitHits() {
+            return hits;
+        }
+    }
+
+    @Test
+    void waitsOnRateLimitThenJudgesAndReportsIt() {
+        HunkReviewResponse r = service(new LimitedLlm(10, false, FACTS_TP, EXPLAINED)).review(request(null, finding("f1", 5)));
+
+        assertEquals("TRUE_POSITIVE", r.findings().get(0).verdict());
+        assertTrue(r.findings().get(0).explanation().startsWith("요약"), "설명도 한도 대기 뒤에 만든다");
+        assertTrue(r.rateLimited());
+    }
+
+    @Test
+    void givesUpOnLongRateLimitWithClearReason() {
+        long started = System.nanoTime();
+        HunkReviewResponse r = service(new LimitedLlm(StructuredLlm.MAX_LIMIT_WAIT_MILLIS + 1, true))
+                .review(request(null, finding("f1", 5)));
+
+        assertEquals("UNDECIDED", r.findings().get(0).verdict());
+        assertTrue(r.findings().get(0).explanation().contains("사용 한도"), r.findings().get(0).explanation());
+        assertTrue(r.rateLimited());
+        assertTrue((System.nanoTime() - started) / 1_000_000 < 5_000, "하루 한도는 기다리지 않는다");
+    }
+
+    @Test
+    void noRateLimitFlagWhenNotLimited() {
+        assertFalse(service(new FakeLlm(FACTS_TP, EXPLAINED)).review(request(null, finding("f1", 5))).rateLimited());
+    }
 }
