@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * OpenAI 형식 /chat/completions를 호출한다. OpenAI, GitHub Models, Ollama(/v1)가 모두 이 형식을 받는다.
@@ -23,6 +24,7 @@ public final class OpenAiCompatibleClient implements LlmClient {
     private final String apiKey;
     private final String model;
     private final Duration timeout;
+    private final AtomicLong tokens = new AtomicLong();
 
     /** @param apiKey 없으면 null 또는 빈 문자열(팀 PC의 Ollama처럼 키가 필요 없는 경우) */
     public OpenAiCompatibleClient(String baseUrl, String apiKey, String model, Duration timeout) {
@@ -55,6 +57,11 @@ public final class OpenAiCompatibleClient implements LlmClient {
         return model;
     }
 
+    /** 지금까지 응답의 usage.total_tokens 합계. 무료 API 한도(분당·하루 토큰)를 가늠할 때 쓴다. */
+    public long tokensUsed() {
+        return tokens.get();
+    }
+
     private static Map<String, String> message(String role, String content) {
         return Map.of("role", role, "content", content);
     }
@@ -77,8 +84,9 @@ public final class OpenAiCompatibleClient implements LlmClient {
             if (response.statusCode() != 200) {
                 throw new LlmException("LLM API 응답 코드 " + response.statusCode() + ": " + response.body());
             }
-            return StructuredLlm.MAPPER.readTree(response.body())
-                    .path("choices").path(0).path("message").path("content").asText();
+            JsonNode json = StructuredLlm.MAPPER.readTree(response.body());
+            tokens.addAndGet(json.path("usage").path("total_tokens").asLong());
+            return json.path("choices").path(0).path("message").path("content").asText();
         } catch (IOException e) {
             throw new LlmUnavailableException("LLM API 호출 실패 (주소와 응답 시간 확인): " + uri, e);
         } catch (InterruptedException e) {
