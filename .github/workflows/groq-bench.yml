@@ -48,6 +48,8 @@ jobs:
       MAVEN_OPTS: -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main  # 예약 실행이 대기하는 동안 앞 실행이 올린 결과까지 받는다
 
       - uses: actions/setup-java@v4
         with:
